@@ -1,0 +1,40 @@
+{
+	"name": "@superfaceai/language-server",
+	"description": "Superface Language Server",
+	"version": "0.0.1",
+	"author": "Superface Team",
+  "license": "MIT",
+  "main": "dist/server",
+  "files": [
+    "dist/**/*"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.6.0",
+    "@typescript-eslint/parser": "^4.6.0",
+    "eslint": "^7.12.1",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-import-resolver-typescript": "^2.3.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-simple-import-sort": "^5.0.3",
+    "prettier": "^2.1.2",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.0.5",
+    "@types/node": "^14.14.6"
+  },
+  "dependencies": {
+    "vscode-languageserver": "^6.1.1",
+    "vscode-languageserver-textdocument": "^1.0.1",
+    "@superfaceai/superface-parser": "^0.0.5-beta"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "yarn build --watch",
+    "prebuild": "yarn clean",
+    "clean": "rimraf dist/",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier -c src/",
+    "format:fix": "prettier --write src/",
+    "prepush": "yarn lint && yarn format"
+  }
+}
