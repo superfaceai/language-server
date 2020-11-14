@@ -25,10 +25,11 @@ export function diagnoseDocument(
       throw new Error('superface parser threw an unexpected error');
     }
 
-    const endLocation = superface.Location.computeEndLocation(
-      error.source.body.slice(error.span.start, error.span.end),
-      error.location
-    );
+    // TODO: This is incorrect, a proper function will be exposed in parser
+    const endLocation = {
+      line: error.location.line,
+      column: error.location.column + (error.span.end - error.span.end),
+    };
     const diag: Diagnostic = {
       range: Range.create(
         error.location.line - 1,
