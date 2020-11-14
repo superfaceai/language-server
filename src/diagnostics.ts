@@ -17,9 +17,15 @@ export function diagnoseDocument(
   const result: Diagnostic[] = [];
 
   try {
-    superface.parseMap(
-      new superface.Source(document.getText(), path.basename(document.uri))
-    );
+    if (document.languageId === 'slang-map') {
+      superface.parseMap(
+        new superface.Source(document.getText(), path.basename(document.uri))
+      );
+    } else {
+      superface.parseProfile(
+        new superface.Source(document.getText(), path.basename(document.uri))
+      );
+    }
   } catch (error) {
     if (!(error instanceof superface.SyntaxError)) {
       throw new Error('superface parser threw an unexpected error');

@@ -67,6 +67,15 @@ class ServerContext {
     this.documents.onDidChangeContent((event): void => {
       this.conLog(`Document changed ${event.document.uri}`);
 
+      if (
+        event.document.languageId !== 'slang-map' &&
+        event.document.languageId !== 'slang-profile'
+      ) {
+        this.conLog('Ignoring document because it is not a slang document');
+
+        return;
+      }
+
       const diagnostics = diagnoseDocument(event.document);
       this.conLogWith('Sending diagnostics', diagnostics);
       this.connection.sendDiagnostics({
