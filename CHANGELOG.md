@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.0.6] - 2021-01-09
+
+### Changed
+* Updated to parser v0.0.9
+* Made document sync options more explicit
+
+### Fixed
+* Correct error end location calculation
+
 ## [0.0.5] - 2020-11-25
 
 ### Changed
@@ -28,7 +37,8 @@
 ### Added
 * Language server implementation that uses superface parser to naively diagnose map files
 
-[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/superfaceai/language-server/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/superfaceai/language-server/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/superfaceai/language-server/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/superfaceai/language-server/compare/v0.0.2...v0.0.3

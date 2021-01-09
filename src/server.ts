@@ -48,8 +48,16 @@ class ServerContext {
 
       const result: InitializeResult = {
         capabilities: {
-          // TODO: For now we only support full sync
-          textDocumentSync: TextDocumentSyncKind.Full,
+          // Document syncing is handled by the TextDocuments handler anyway
+          textDocumentSync: {
+            openClose: true,
+            change: TextDocumentSyncKind.Incremental,
+            willSave: true,
+            willSaveWaitUntil: true,
+            save: {
+              includeText: false,
+            },
+          },
         },
         serverInfo: ServerContext.SERVER_INFO,
       };

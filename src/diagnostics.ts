@@ -1,4 +1,4 @@
-import * as superface from '@superfaceai/superface-parser';
+import * as superparser from '@superfaceai/parser';
 import * as path from 'path';
 import { Diagnostic, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -18,24 +18,23 @@ export function diagnoseDocument(
 
   try {
     if (document.languageId === 'slang-map') {
-      superface.parseMap(
-        new superface.Source(document.getText(), path.basename(document.uri))
+      superparser.parseMap(
+        new superparser.Source(document.getText(), path.basename(document.uri))
       );
     } else {
-      superface.parseProfile(
-        new superface.Source(document.getText(), path.basename(document.uri))
+      superparser.parseProfile(
+        new superparser.Source(document.getText(), path.basename(document.uri))
       );
     }
   } catch (error) {
-    if (!(error instanceof superface.SyntaxError)) {
+    if (!(error instanceof superparser.SyntaxError)) {
       throw new Error('superface parser threw an unexpected error');
     }
 
-    // TODO: This is incorrect, a proper function will be exposed in parser
-    const endLocation = {
-      line: error.location.line,
-      column: error.location.column + (error.span.end - error.span.end),
-    };
+    const endLocation = superparser.computeEndLocation(
+      error.source.body.slice(error.span.start, error.span.end),
+      error.location
+    );
     const diag: Diagnostic = {
       range: Range.create(
         error.location.line - 1,
