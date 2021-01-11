@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.0.7] - 2021-01-11
+
+### Changed
+* Update to parser v0.0.10
+
 ## [0.0.6] - 2021-01-09
 
 ### Changed
@@ -37,7 +42,8 @@
 ### Added
 * Language server implementation that uses superface parser to naively diagnose map files
 
-[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/superfaceai/language-server/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/superfaceai/language-server/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/superfaceai/language-server/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/superfaceai/language-server/compare/v0.0.3...v0.0.4
