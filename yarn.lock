@@ -60,17 +60,17 @@
     "@nodelib/fs.scandir" "2.1.3"
     fastq "^1.6.0"
 
-"@superfaceai/ast@^0.1.0":
-  version "0.1.0"
-  resolved "https://npm.pkg.github.com/download/@superfaceai/ast/0.1.0/b97e9a9bf3b369dde42fb5b41c46f064aa3b3e3931f1dc4d81624d92fbe6665e#8fc9702dc7e648f4d88bb3ecd6a5c87a4d6a1aec"
-  integrity sha512-mpvV/OvJF82TysXVyEZmiNAiW95BuPjUY1EM3o5ajR3ZW5URX/csEGJtitGodCkHfjQLO1gdqovS+urDxsLSBQ==
+"@superfaceai/ast@^0.0.20":
+  version "0.0.20"
+  resolved "https://npm.pkg.github.com/download/@superfaceai/ast/0.0.20/957dff9bf72e8a26c1ddf4cf4e82726c47edc9b3d91e3b8d576f7c1e9862a7b7#394e1a92cb14c9c62da41c2cdcd8070653e93f47"
+  integrity sha512-vE6D7SXn72Y3PvvLWTFttyt34FRbQbEUlNUpb3wtn9yQrplEWoOw1rcwmoHaAKemRHGQMEWjTcHE9KKW4ocY8A==
 
-"@superfaceai/parser@^0.0.8":
-  version "0.0.8"
-  resolved "https://npm.pkg.github.com/download/@superfaceai/parser/0.0.8/0cc962499b2bc1dd3553b73936ff69165124b068eebb5199df9d7c823e0a15b5#5bb0f648c45df13d0ffe827d0648b8635e259201"
-  integrity sha512-XSZvO4PRNbU0/8jIShjptp2qgm4w9Sgpe1WFEsTT03sl6dAy/KJQRcI8/+RlnzNWu65MnR7OEjR8SRmqHHQsuw==
+"@superfaceai/parser@^0.0.10":
+  version "0.0.10"
+  resolved "https://npm.pkg.github.com/download/@superfaceai/parser/0.0.10/09cfac3d21da07d1eacdcad265f3b94ed4afe0e8dc2fe1a9946b9dc4230cd129#032c9ba6126af2441805506d51de96f92aa906c3"
+  integrity sha512-YqcHNqZbjXv0RCn2QgQVnCmzUJYBsQtwKvEDQ1PMG6+WEQU7f0cEwhGJasLj7j4sEnGT94ObEUFxJQUw8IzwzQ==
   dependencies:
-    "@superfaceai/ast" "^0.1.0"
+    "@superfaceai/ast" "^0.0.20"
     typescript "^4.0.2"
 
 "@types/json-schema@^7.0.3":
