@@ -24,7 +24,7 @@
   "dependencies": {
     "vscode-languageserver": "^6.1.1",
     "vscode-languageserver-textdocument": "^1.0.1",
-    "@superfaceai/parser": "^0.0.10"
+    "@superfaceai/parser": "^0.0.14"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
