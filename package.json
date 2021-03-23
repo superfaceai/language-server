@@ -1,7 +1,7 @@
 {
 	"name": "@superfaceai/language-server",
 	"description": "Superface Language Server",
-	"version": "0.0.6",
+	"version": "0.0.9",
 	"author": "Superface Team",
   "license": "MIT",
   "main": "dist/server",
@@ -24,7 +24,7 @@
   "dependencies": {
     "vscode-languageserver": "^6.1.1",
     "vscode-languageserver-textdocument": "^1.0.1",
-    "@superfaceai/parser": "^0.0.14"
+    "@superfaceai/parser": "^0.0.15"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
