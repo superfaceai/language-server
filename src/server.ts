@@ -1,4 +1,5 @@
 import util from 'util';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
   Connection,
   createConnection,
@@ -7,7 +8,6 @@ import {
   TextDocuments,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { diagnoseDocument } from './diagnostics';
 
