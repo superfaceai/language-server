@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.0.11] - 2021-04-26
+
+### Fixed
+* Build failure
+
 ## [0.0.10] - 2021-04-26
 
 ### Changed
