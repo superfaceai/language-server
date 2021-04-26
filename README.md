@@ -4,19 +4,7 @@ This is a language server according to the [LSP protocol](https://microsoft.gith
 
 ## Install
 
-To install the package, first create `.npmrc` file in your project root and put the following line into it.
-
-```
-@superfaceai:registry=https://npm.pkg.github.com
-```
-
-Then authenticate to github npm package registry. Use your github name as your login and generate a personal access token with at least the `repo` and `read:packages` permissions in Github to use as password:
-
-```
-npm login --registry=https://npm.pkg.github.com
-```
-
-After doing this, you should be able to install the package by calling:
+Install the package by calling:
 
 ```
 yarn add @superfaceai/language-server
@@ -30,7 +18,7 @@ Package publishing is done through GitHub release functionality.
 
 Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
 
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://github.com/superfaceai/language-server/packages).
+Github Actions workflow will pick up the release and publish it as one of the [packages](https://www.npmjs.com/package/@superfaceai/language-server).
 
 ## Licensing
 
@@ -46,4 +34,8 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 - CC-BY-3.0;BSD
 - CC0-1.0
 - Unlicense
-- UNLICENSED
+
+## License
+
+The Superface Parser is licensed under the [MIT](LICENSE).
+© 2021 Superface
