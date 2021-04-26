@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@superfaceai/parser": "^0.0.16",
-    "vscode-languageserver": "^6.1.1",
+    "vscode-languageserver": "^7",
     "vscode-languageserver-textdocument": "^1.0.1"
   },
   "scripts": {
