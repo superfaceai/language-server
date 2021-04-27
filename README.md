@@ -10,16 +10,6 @@ Install the package by calling:
 yarn add @superfaceai/language-server
 ```
 
-## Publishing a new version
-
-Package publishing is done through GitHub release functionality.
-
-[Draft a new release](https://github.com/superfaceai/language-server/releases/new) to publish a new version of the package.
-
-Use semver for the version tag. It must be in format of `v<major>.<minor>.<patch>`.
-
-Github Actions workflow will pick up the release and publish it as one of the [packages](https://www.npmjs.com/package/@superfaceai/language-server).
-
 ## Licensing
 
 Licenses of `node_modules` are checked during push CI/CD for every commit. Only the following licenses are allowed:
