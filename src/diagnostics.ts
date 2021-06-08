@@ -1,6 +1,6 @@
 import * as superparser from '@superfaceai/parser';
 import * as path from 'path';
-import { Diagnostic, Range } from 'vscode-languageserver';
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 interface DiagnosticOptions {
@@ -35,6 +35,12 @@ export function diagnoseDocument(
       error.source.body.slice(error.span.start, error.span.end),
       error.location
     );
+
+    let message = error.detail;
+    if (error.hint !== undefined) {
+      message += `\n\n${error.hint}`
+    };
+
     const diag: Diagnostic = {
       range: Range.create(
         error.location.line - 1,
@@ -42,7 +48,9 @@ export function diagnoseDocument(
         endLocation.line - 1,
         endLocation.column - 1
       ),
-      message: error.detail,
+      message,
+      severity: DiagnosticSeverity.Error,
+      source: error.category
     };
     result.push(diag);
   }
