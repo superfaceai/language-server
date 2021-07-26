@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated parser to v0.0.19
+- Renamed `slang` to `comlink`
+
 ## [0.0.12] - 2021-06-08
 ### Changed
 - Updated parser to v0.0.18

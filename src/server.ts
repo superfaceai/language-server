@@ -76,10 +76,10 @@ class ServerContext {
       this.conLog(`Document changed ${event.document.uri}`);
 
       if (
-        event.document.languageId !== 'slang-map' &&
-        event.document.languageId !== 'slang-profile'
+        event.document.languageId !== 'comlink-map' &&
+        event.document.languageId !== 'comlink-profile'
       ) {
-        this.conLog('Ignoring document because it is not a slang document');
+        this.conLog('Ignoring document because it is not a comlink document');
 
         return;
       }
