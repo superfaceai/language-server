@@ -17,7 +17,7 @@ export function diagnoseDocument(
   const result: Diagnostic[] = [];
 
   try {
-    if (document.languageId === 'slang-map') {
+    if (document.languageId === 'comlink-map') {
       superparser.parseMap(
         new superparser.Source(document.getText(), path.basename(document.uri))
       );
