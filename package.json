@@ -2,7 +2,7 @@
   "name": "@superfaceai/language-server",
   "description": "Superface Language Server",
   "repository": "https://github.com/superfaceai/language-server.git",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "author": "Superface Team",
   "license": "MIT",
   "main": "dist/server",

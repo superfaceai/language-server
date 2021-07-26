@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13] - 2021-07-26
 ### Changed
 - Updated parser to v0.0.19
 - Renamed `slang` to `comlink`
@@ -66,7 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Language server implementation that uses superface parser to naively diagnose map files
 
-[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.12...HEAD
+[Unreleased]: https://github.com/superfaceai/language-server/compare/v0.0.13...HEAD
+[0.0.13]: https://github.com/superfaceai/language-server/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/superfaceai/language-server/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/superfaceai/language-server/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/superfaceai/language-server/compare/v0.0.9...v0.0.10
