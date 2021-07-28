@@ -1,14 +1,19 @@
 import * as superparser from '@superfaceai/parser';
-import * as path from 'path';
+
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-interface DiagnosticOptions {
+import { parseDocument } from './document';
+
+type DiagnosticOptions = {
   /** Specifies the maximum number of diagnostics to generate. */
   maxProblems?: number;
 }
+
 /**
  * Diagnoses given text document and returns the diagnostic results.
+ * 
+ * Returns `undefined` if the document id is not known.
  */
 export function diagnoseDocument(
   document: TextDocument,
@@ -16,20 +21,9 @@ export function diagnoseDocument(
 ): Diagnostic[] {
   const result: Diagnostic[] = [];
 
-  try {
-    if (document.languageId === 'comlink-map') {
-      superparser.parseMap(
-        new superparser.Source(document.getText(), path.basename(document.uri))
-      );
-    } else {
-      superparser.parseProfile(
-        new superparser.Source(document.getText(), path.basename(document.uri))
-      );
-    }
-  } catch (error) {
-    if (!(error instanceof superparser.SyntaxError)) {
-      throw new Error('superface parser threw an unexpected error');
-    }
+  const parsed = parseDocument(document);
+  if (parsed.kind === 'failure') {
+    const error = parsed.error;
 
     const endLocation = superparser.computeEndLocation(
       error.source.body.slice(error.span.start, error.span.end),

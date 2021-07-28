@@ -1,15 +1,20 @@
 import util from 'util';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 import {
   Connection,
   createConnection,
+  DocumentSymbol,
   InitializeResult,
   ProposedFeatures,
+  SymbolInformation,
   TextDocuments,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
 
 import { diagnoseDocument } from './diagnostics';
+import { getDocument, listDocumentSymbols } from './document';
+import { WorkContext } from './lib';
 
 /**
  * Entry point class to the server.
@@ -36,15 +41,15 @@ class ServerContext {
 
     this.startTimestamp = Date.now();
 
-    this.bindEventsDocuments();
     this.bindEventsConnection();
+    this.bindEventsDocuments();
   }
 
   // INITIALIZATION //
 
   private bindEventsConnection() {
     this.connection.onInitialize(params => {
-      this.conLogWith('Received to initialization', params);
+      this.conLogWith('onInitialize', params);
 
       const result: InitializeResult = {
         capabilities: {
@@ -58,53 +63,95 @@ class ServerContext {
               includeText: false,
             },
           },
+          documentSymbolProvider: true,
+          workspaceSymbolProvider: true,
+          // workspace: {
+          //   workspaceFolders: {
+          //     supported: true
+          //   }
+          // }
         },
         serverInfo: ServerContext.SERVER_INFO,
       };
-      this.conLogWith('Responding to initialization', result);
+      this.conLogWith('onInitialize result', result);
 
       return result;
     });
+
+    this.connection.onDocumentSymbol(
+      async (params, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onDocumentSymbol(${params.textDocument.uri})`);
+
+        const workContext: WorkContext<DocumentSymbol[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress
+        };
+
+        const document = await getDocument(this.documents, params.textDocument.uri);
+        const symbols = listDocumentSymbols(document, workContext);
+        if (symbols.kind === 'failure') {
+          return undefined;
+        }
+        
+        this.conLogWith(`onDocumentSymbol(${params.textDocument.uri})`, symbols.value);
+        return symbols.value;
+      }
+    );
+
+    this.connection.onWorkspaceSymbol(
+      async (params, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onWorkspaceSymbol(${params.query})`);
+
+        const _workContext: WorkContext<SymbolInformation[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress
+        };
+        void _workContext;
+
+        this.conLogWith('getWorkspaceFolders', await this.connection.workspace.getWorkspaceFolders());
+
+        return null; // TODO
+      }
+    );
   }
 
   private bindEventsDocuments() {
     this.documents.onDidOpen(event => {
-      this.conLog(`Document opened ${event.document.uri}`);
+      this.conLog(`onDidOpen(${event.document.uri})`);
     });
 
     this.documents.onDidChangeContent((event): void => {
-      this.conLog(`Document changed ${event.document.uri}`);
-
-      if (
-        event.document.languageId !== 'comlink-map' &&
-        event.document.languageId !== 'comlink-profile'
-      ) {
-        this.conLog('Ignoring document because it is not a comlink document');
-
-        return;
-      }
-
-      const diagnostics = diagnoseDocument(event.document);
-      this.conLogWith('Sending diagnostics', diagnostics);
-      this.connection.sendDiagnostics({
-        uri: event.document.uri,
-        diagnostics,
-      });
+      this.conLog(`onDidChangeContent(${event.document.uri})`);
+      this.diagnoseDocument(event.document.uri);
     });
 
     this.documents.onDidClose(event => {
-      this.conLog(`Document closed ${event.document.uri}`);
+      this.conLog(`onDidClose(${event.document.uri})`);
     });
   }
-
-  // LOGIC //
 
   /**
    * Begins listening on the connection.
    */
-  listen() {
+   listen() {
     this.documents.listen(this.connection);
     this.connection.listen();
+  }
+
+  // LOGIC //
+
+  private async diagnoseDocument(uri: DocumentUri): Promise<void> {
+    const document = await getDocument(this.documents, uri);
+    const diagnostics = diagnoseDocument(document);
+
+    if (diagnostics !== undefined) {
+      this.conLogWith('Sending diagnostics', diagnostics);
+      this.connection.sendDiagnostics(
+        { uri, diagnostics }
+      );
+    }
   }
 
   // UTILITY //
@@ -144,7 +191,7 @@ class ServerContext {
       depth: 5,
       colors: false,
     });
-    this.conLog(`${message} with ${inspected}`);
+    this.conLog(`${message}: ${inspected}`);
   }
 }
 
