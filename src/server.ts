@@ -1,6 +1,4 @@
 import util from 'util';
-
-import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 import {
   Connection,
   createConnection,
@@ -8,13 +6,13 @@ import {
   InitializeResult,
   ProposedFeatures,
   SymbolInformation,
-  TextDocuments,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
 
-import { diagnoseDocument } from './diagnostics';
-import { getDocument, listDocumentSymbols } from './document';
-import { WorkContext } from './lib';
+import { ComlinkDocument } from './document';
+import { ComlinkDocuments } from './documents';
+import { stripUriPrefix, WorkContext } from './lib';
+import { loadWorkspaceDocuments } from './workspace';
 
 /**
  * Entry point class to the server.
@@ -31,13 +29,14 @@ class ServerContext {
   /** LSP connection on which we listen */
   readonly connection: Connection;
   /** Manager for open text documents */
-  readonly documents: TextDocuments<TextDocument>;
+  readonly documents: ComlinkDocuments;
 
   private readonly startTimestamp: number;
+  private globalPromise: Promise<void> | undefined;
 
   constructor() {
     this.connection = createConnection(ProposedFeatures.all);
-    this.documents = new TextDocuments(TextDocument);
+    this.documents = new ComlinkDocuments();
 
     this.startTimestamp = Date.now();
 
@@ -79,38 +78,47 @@ class ServerContext {
     });
 
     this.connection.onDocumentSymbol(
-      async (params, cancellationToken, workDoneProgress, resultProgress) => {
-        this.conLog(`onDocumentSymbol(${params.textDocument.uri})`);
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onDocumentSymbol(${event.textDocument.uri})`);
 
         const workContext: WorkContext<DocumentSymbol[]> = {
           cancellationToken,
           workDoneProgress,
-          resultProgress
+          resultProgress,
         };
 
-        const document = await getDocument(this.documents, params.textDocument.uri);
-        const symbols = listDocumentSymbols(document, workContext);
+        const document = await this.documents.loadDocument(
+          event.textDocument.uri
+        );
+        const symbols = document.getSymbols(workContext);
         if (symbols.kind === 'failure') {
           return undefined;
         }
-        
-        this.conLogWith(`onDocumentSymbol(${params.textDocument.uri})`, symbols.value);
+
+        this.conLogWith(
+          `onDocumentSymbol(${event.textDocument.uri})`,
+          symbols.value
+        );
+
         return symbols.value;
       }
     );
 
     this.connection.onWorkspaceSymbol(
-      async (params, cancellationToken, workDoneProgress, resultProgress) => {
-        this.conLog(`onWorkspaceSymbol(${params.query})`);
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onWorkspaceSymbol(${event.query})`);
 
         const _workContext: WorkContext<SymbolInformation[]> = {
           cancellationToken,
           workDoneProgress,
-          resultProgress
+          resultProgress,
         };
         void _workContext;
 
-        this.conLogWith('getWorkspaceFolders', await this.connection.workspace.getWorkspaceFolders());
+        this.conLogWith(
+          'getWorkspaceFolders',
+          await this.connection.workspace.getWorkspaceFolders()
+        );
 
         return null; // TODO
       }
@@ -118,40 +126,86 @@ class ServerContext {
   }
 
   private bindEventsDocuments() {
-    this.documents.onDidOpen(event => {
-      this.conLog(`onDidOpen(${event.document.uri})`);
+    this.connection.onDidOpenTextDocument(event => {
+      this.conLog(`onDidOpenTextDocument(${event.textDocument.uri})`);
+
+      const document = this.documents.create(
+        event.textDocument.uri,
+        event.textDocument.languageId,
+        event.textDocument.version,
+        event.textDocument.text
+      );
+
+      this.queueGlobalPromise(this.loadWorkspace());
+
+      void this.diagnoseDocument(document);
     });
 
-    this.documents.onDidChangeContent((event): void => {
-      this.conLog(`onDidChangeContent(${event.document.uri})`);
-      this.diagnoseDocument(event.document.uri);
+    this.connection.onDidChangeTextDocument(event => {
+      this.conLog(`onDidChangeTextDocument(${event.textDocument.uri})`);
+
+      if (event.contentChanges.length === 0) {
+        return;
+      }
+
+      const document = this.documents.update(
+        event.textDocument.uri,
+        event.contentChanges,
+        event.textDocument.version
+      );
+
+      void this.diagnoseDocument(document);
     });
 
-    this.documents.onDidClose(event => {
-      this.conLog(`onDidClose(${event.document.uri})`);
+    this.connection.onDidCloseTextDocument(event => {
+      this.conLog(`onDidCloseTextDocument(${event.textDocument.uri})`);
+
+      this.documents.remove(event.textDocument.uri);
     });
   }
 
   /**
    * Begins listening on the connection.
    */
-   listen() {
-    this.documents.listen(this.connection);
+  listen() {
     this.connection.listen();
   }
 
   // LOGIC //
 
-  private async diagnoseDocument(uri: DocumentUri): Promise<void> {
-    const document = await getDocument(this.documents, uri);
-    const diagnostics = diagnoseDocument(document);
-
-    if (diagnostics !== undefined) {
-      this.conLogWith('Sending diagnostics', diagnostics);
-      this.connection.sendDiagnostics(
-        { uri, diagnostics }
+  private queueGlobalPromise(promise: Promise<void>) {
+    if (this.globalPromise === undefined) {
+      this.globalPromise = promise;
+    } else {
+      this.globalPromise = Promise.all([this.globalPromise, promise]).then(
+        _ => undefined
       );
     }
+  }
+
+  private async awaitGlobalPromise() {
+    if (this.globalPromise !== undefined) {
+      await this.globalPromise;
+      this.globalPromise = undefined;
+    }
+  }
+
+  private async loadWorkspace(): Promise<void> {
+    const promise = this.connection.workspace
+      .getWorkspaceFolders()
+      .then(folders => (folders ?? []).map(f => stripUriPrefix(f.uri)))
+      .then(folders => loadWorkspaceDocuments(folders, this.documents))
+      .catch(err => this.conLogWith('Failed to load workspace documents', err));
+
+    return promise;
+  }
+
+  private async diagnoseDocument(document: ComlinkDocument): Promise<void> {
+    await this.awaitGlobalPromise();
+
+    const diagnostics = document.getDiagnostics(this.documents);
+    this.conLogWith('Sending diagnostics', diagnostics);
+    this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
   }
 
   // UTILITY //

@@ -1,199 +1,231 @@
-import * as path from 'path';
-import { promises as fsp } from 'fs';
-
-import { ProfileDocumentNode, MapDocumentNode } from '@superfaceai/ast';
+import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import * as superparser from '@superfaceai/parser';
-import { parseRuleResult } from '@superfaceai/parser/dist/language/syntax/parser';
-import { PROFILE_DOCUMENT } from '@superfaceai/parser/dist/language/syntax/rules/profile/profile';
-import { MAP_DOCUMENT, SyntaxError } from '@superfaceai/parser';
+import { WithLocationInfo } from '@superfaceai/parser/dist/language/syntax/rules/common';
+import * as path from 'path';
+import {
+  Diagnostic,
+  DocumentSymbol,
+  DocumentUri,
+  SymbolKind,
+  TextDocumentContentChangeEvent,
+} from 'vscode-languageserver';
+import {
+  Position,
+  Range,
+  TextDocument,
+} from 'vscode-languageserver-textdocument';
 
-import { DocumentUri, TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentSymbol, Range, SymbolKind } from "vscode-languageserver-types";
+import {
+  DiagnosticOptions,
+  diagnosticsFromSyntaxError,
+  lintMap,
+} from './diagnostics';
+import { ComlinkDocuments } from './documents';
+import { Result, WorkContext } from './lib';
+import { listMapSymbols, listProfileSymbols } from './symbols';
 
-import { Result, WorkContext, fileNameFromUri, forceSpan } from "./lib";
-import { TextDocuments } from 'vscode-languageserver';
+export class ComlinkDocument implements TextDocument {
+  static PROFILE_EXTENSIONS = ['supr'];
+  static MAP_EXTENSIONS = ['suma'];
+  static PROFILE_LANGUAGE_ID = 'comlink-profile';
+  static MAP_LANGUAGE_ID = 'comlink-map';
 
-/**
- * Gets text document either from manager or by loading it from the disk.
- */
-export async function getDocument(manager: TextDocuments<TextDocument>, uri: DocumentUri): Promise<TextDocument> {
-	const managed = manager.get(uri)
-    if (managed !== undefined) {
-      return managed;
+  static hasProfileExtension(path: string): boolean {
+    return ComlinkDocument.PROFILE_EXTENSIONS.some(extension =>
+      path.endsWith(`.${extension}`)
+    );
+  }
+
+  static hasMapExtension(path: string): boolean {
+    return ComlinkDocument.MAP_EXTENSIONS.some(extension =>
+      path.endsWith(`.${extension}`)
+    );
+  }
+
+  static create(
+    uri: DocumentUri,
+    languageId: string,
+    version: number,
+    content: string
+  ): ComlinkDocument {
+    return new ComlinkDocument(
+      TextDocument.create(uri, languageId, version, content)
+    );
+  }
+
+  private astCache?: Result<
+    WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+    superparser.SyntaxError
+  > = undefined;
+  private symbolCache?: Result<DocumentSymbol[], superparser.SyntaxError> =
+    undefined;
+
+  constructor(private textDocument: TextDocument) {}
+
+  update(changes: TextDocumentContentChangeEvent[], version: number): this {
+    this.textDocument = TextDocument.update(
+      this.textDocument,
+      changes,
+      version
+    );
+    this.clearCache();
+
+    return this;
+  }
+
+  get uri(): DocumentUri {
+    return this.textDocument.uri;
+  }
+
+  get languageId(): string {
+    return this.textDocument.languageId;
+  }
+
+  get version(): number {
+    return this.textDocument.version;
+  }
+
+  get lineCount(): number {
+    return this.textDocument.lineCount;
+  }
+
+  getText(range?: Range): string {
+    return this.textDocument.getText(range);
+  }
+
+  positionAt(offset: number): Position {
+    return this.textDocument.positionAt(offset);
+  }
+
+  offsetAt(position: Position): number {
+    return this.textDocument.offsetAt(position);
+  }
+
+  clearCache(): void {
+    this.astCache = undefined;
+    this.symbolCache = undefined;
+  }
+
+  getAst(
+    workContext?: WorkContext<unknown>
+  ): Result<
+    WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+    superparser.SyntaxError
+  > {
+    if (this.astCache !== undefined) {
+      return this.astCache;
     }
 
-    const text = await fsp.readFile(uri, { encoding: 'utf-8' });
+    const source = new superparser.Source(
+      this.getText(),
+      path.basename(this.uri)
+    );
 
-	let languageId = 'plaintext';
-	if (uri.endsWith('.supr')) {
-		languageId = 'comlink-profile';
-	} else if (uri.endsWith('.suma')) {
-		languageId = 'comlink-map';
-	}
+    let result: Result<
+      WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+      superparser.SyntaxError
+    >;
+    if (this.languageId === ComlinkDocument.PROFILE_LANGUAGE_ID) {
+      workContext?.workDoneProgress.begin(
+        'Parsing profile',
+        0,
+        undefined,
+        false
+      );
+      result = superparser.parse.parseRuleResult(
+        superparser.profileRules.PROFILE_DOCUMENT,
+        source
+      );
+      workContext?.workDoneProgress.done();
+    } else if (this.languageId === ComlinkDocument.MAP_LANGUAGE_ID) {
+      workContext?.workDoneProgress.begin('Parsing map', 0, undefined, false);
+      result = superparser.parse.parseRuleResult(
+        superparser.mapRules.MAP_DOCUMENT,
+        source
+      );
+      workContext?.workDoneProgress.done();
+    } else {
+      throw new Error('unexpected language id');
+    }
 
-    return TextDocument.create(uri, languageId, 0, text);
-}
+    this.astCache = result;
 
-export function parseDocument(
-	document: TextDocument,
-	workContext?: WorkContext<unknown>
-): Result<ProfileDocumentNode | MapDocumentNode, SyntaxError> {
-	let source = new superparser.Source(document.getText(), path.basename(document.uri));
-	
-	let result;
-	if (document.languageId === 'comlink-profile') {
-		workContext?.workDoneProgress.begin('Parsing profile', 0, undefined, false);
-		result = parseRuleResult(PROFILE_DOCUMENT, source);
-		workContext?.workDoneProgress.done();
-	} else if (document.languageId === 'comlink-map') {
-		workContext?.workDoneProgress.begin('Parsing map', 0, undefined, false);
-		result = parseRuleResult(MAP_DOCUMENT, source);
-		workContext?.workDoneProgress.done();
-	} else {
-		throw new Error('unexpected language id');
-	}
+    return result;
+  }
 
-	return result;
-}
+  getDiagnostics(
+    manager: ComlinkDocuments,
+    options?: DiagnosticOptions,
+    workContext?: WorkContext<Diagnostic[]>
+  ): Diagnostic[] {
+    const result: Diagnostic[] = [];
 
-export function listDocumentSymbols(
-	document: TextDocument,
-	workContext?: WorkContext<DocumentSymbol[]>
-): Result<DocumentSymbol[], SyntaxError> {
-	const parseResult = parseDocument(document, workContext);
-	if (parseResult.kind === 'failure') {
-		return parseResult;
-	}
-	const parsed = parseResult.value; 
+    const parsed = this.getAst(workContext);
+    if (parsed.kind === 'failure') {
+      result.push(...diagnosticsFromSyntaxError(parsed.error));
+    } else if (parsed.value.kind === 'MapDocument') {
+      result.push(...lintMap(this, manager));
+    }
 
-	let symbols: DocumentSymbol[] = [];
-	if (parsed.kind === 'ProfileDocument') {
-		symbols = listProfileSymbols(document, parsed, workContext);
-	}
-	
-	if (parsed.kind === 'MapDocument') {
-		symbols = listMapSymbols(document, parsed, workContext);
-	}
+    return result.slice(0, options?.maxProblems ?? result.length);
+  }
 
-	return {
-		kind: 'success',
-		value: symbols
-	};
-}
+  getSymbols(
+    workContext?: WorkContext<DocumentSymbol[]>
+  ): Result<DocumentSymbol[], superparser.SyntaxError> {
+    if (this.symbolCache !== undefined) {
+      return this.symbolCache;
+    }
 
-function listProfileSymbols(
-	document: TextDocument,
-	profile: ProfileDocumentNode,
-	workContext?: WorkContext<DocumentSymbol[]>
-): DocumentSymbol[] {
-	workContext?.workDoneProgress.begin('Gathering profile symbols');
+    let result: Result<DocumentSymbol[], superparser.SyntaxError>;
 
-	const symbols = [];
-	
-	const fileSpan = forceSpan(profile.span);
-	const fileSymbol = DocumentSymbol.create(
-		fileNameFromUri(document.uri),
-		undefined,
-		SymbolKind.File,
-		Range.create(
-			document.positionAt(fileSpan.start),
-			document.positionAt(fileSpan.end)
-		),
-		Range.create(
-			document.positionAt(fileSpan.start),
-			document.positionAt(fileSpan.start)
-		),
-		[]
-	);
-	symbols.push(fileSymbol);
+    const astResult = this.getAst(workContext);
+    if (astResult.kind === 'failure') {
+      result = astResult;
+    } else {
+      const ast = astResult.value;
 
-	const namespaceSpan = forceSpan(profile.header.span);
-	const namespaceSymbol = DocumentSymbol.create(
-		profile.header.scope !== undefined ? `${profile.header.scope}/${profile.header.name}` : profile.header.name,
-		undefined,
-		SymbolKind.Namespace,
-		Range.create(
-			document.positionAt(namespaceSpan.start),
-			document.positionAt(namespaceSpan.end)
-		),
-		Range.create(
-			document.positionAt(namespaceSpan.start),
-			document.positionAt(namespaceSpan.start)
-		),
-		[]
-	)
-	fileSymbol.children?.push(namespaceSymbol);
+      let symbols: DocumentSymbol[] = [];
+      if (ast.kind === 'ProfileDocument') {
+        symbols = listProfileSymbols(this, ast, workContext);
+      } else if (ast.kind === 'MapDocument') {
+        symbols = listMapSymbols(this, ast, workContext);
+      }
 
-	for (const definition of profile.definitions) {
-		switch (definition.kind) {
-			case 'UseCaseDefinition':
-				const usecaseSpan = forceSpan(definition.span);
-				const usecaseSymbol = DocumentSymbol.create(
-					definition.useCaseName,
-					definition.title,
-					SymbolKind.Module,
-					Range.create(
-						document.positionAt(usecaseSpan.start),
-						document.positionAt(usecaseSpan.end)
-					),
-					Range.create(
-						document.positionAt(usecaseSpan.start),
-						document.positionAt(usecaseSpan.end)
-					),
-					[]
-				);
-				namespaceSymbol.children?.push(usecaseSymbol);
-				break;
-			
-			case 'NamedModelDefinition':
-				const modelSpan = forceSpan(definition.span);
-				const modelSymbol = DocumentSymbol.create(
-					definition.modelName,
-					definition.title,
-					SymbolKind.Interface,
-					Range.create(
-						document.positionAt(modelSpan.start),
-						document.positionAt(modelSpan.end)
-					),
-					Range.create(
-						document.positionAt(modelSpan.start),
-						document.positionAt(modelSpan.end)
-					),
-					[]
-				)
-				namespaceSymbol.children?.push(modelSymbol);
-				break;
+      result = {
+        kind: 'success',
+        value: symbols,
+      };
+    }
 
-			case 'NamedFieldDefinition':
-				const fieldSpan = forceSpan(definition.span);
-				const fieldSymbol = DocumentSymbol.create(
-					definition.fieldName,
-					definition.title,
-					SymbolKind.Field,
-					Range.create(
-						document.positionAt(fieldSpan.start),
-						document.positionAt(fieldSpan.end)
-					),
-					Range.create(
-						document.positionAt(fieldSpan.start),
-						document.positionAt(fieldSpan.end)
-					),
-					[]
-				)
-				namespaceSymbol.children?.push(fieldSymbol);
-				break;
-		}
-	}
+    this.symbolCache = result;
 
-	workContext?.workDoneProgress.done();
+    return result;
+  }
 
-	return symbols;
-}
+  getNamespaceSymbol(
+    workContext?: WorkContext<DocumentSymbol>
+  ): Result<DocumentSymbol, superparser.SyntaxError> {
+    let wc = undefined;
+    if (workContext !== undefined) {
+      wc = {
+        cancellationToken: workContext.cancellationToken,
+        workDoneProgress: workContext.workDoneProgress,
+      };
+    }
+    const symbols = this.getSymbols(wc);
+    if (symbols.kind === 'failure') {
+      return symbols;
+    }
 
-function listMapSymbols(
-	_document: TextDocument,
-	_map: MapDocumentNode,
-	_workContext?: WorkContext<DocumentSymbol[]>
-): DocumentSymbol[] {
-	return []
+    const namespaceSymbol = symbols.value[0].children?.[0];
+    if (
+      namespaceSymbol === undefined ||
+      namespaceSymbol.kind !== SymbolKind.Namespace
+    ) {
+      throw new Error('Unexpected document symbol structure');
+    }
+
+    return { kind: 'success', value: namespaceSymbol };
+  }
 }
