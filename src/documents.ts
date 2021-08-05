@@ -71,7 +71,9 @@ export class ComlinkDocuments {
       return managed;
     }
 
-    const content = await fsp.readFile(stripUriPrefix(uri), { encoding: 'utf-8' });
+    const content = await fsp.readFile(stripUriPrefix(uri), {
+      encoding: 'utf-8',
+    });
 
     let languageId = 'plaintext';
     if (ComlinkDocument.hasProfileExtension(uri)) {

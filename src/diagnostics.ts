@@ -1,10 +1,19 @@
 import * as superparser from '@superfaceai/parser';
-import { formatIssueContext, getProfileOutput, validateMap, ValidationIssue } from '@superfaceai/parser';
-import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
+import {
+  formatIssueContext,
+  getProfileOutput,
+  validateMap,
+  ValidationIssue,
+} from '@superfaceai/parser';
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  Position,
+  Range,
+} from 'vscode-languageserver';
 
 import { ComlinkDocument } from './document';
 import { ComlinkDocuments } from './documents';
-
 import { unwrapResult } from './lib';
 
 export type DiagnosticOptions = {
@@ -43,9 +52,12 @@ export function diagnosticsFromSyntaxError(
   return result;
 }
 
-function parseLinterPath(path?: string[]): { position: Position, rest: string[] } {
+function parseLinterPath(path?: string[]): {
+  position: Position;
+  rest: string[];
+} {
   if (path === undefined || path.length === 0) {
-    return { position: Position.create(0, 0), rest: [] }
+    return { position: Position.create(0, 0), rest: [] };
   }
 
   let position = Position.create(0, 0);
@@ -55,17 +67,22 @@ function parseLinterPath(path?: string[]): { position: Position, rest: string[] 
     const column = parseInt(split[1]);
 
     position = Position.create(line - 1, column - 1);
-  } catch (e: unknown) {}
+  } catch (e: unknown) {
+    // pass
+  }
 
   return {
     position,
-    rest: path.slice(1)
-  }
+    rest: path.slice(1),
+  };
 }
 
-function diagnosticFromValidationIssue(issue: ValidationIssue, severity?: DiagnosticSeverity): Diagnostic {
+function diagnosticFromValidationIssue(
+  issue: ValidationIssue,
+  severity?: DiagnosticSeverity
+): Diagnostic {
   const { position } = parseLinterPath(issue.context.path);
-    
+
   const diag = Diagnostic.create(
     Range.create(position, position),
     formatIssueContext(issue),
@@ -122,13 +139,17 @@ export function lintMap(
   const validationResult = validateMap(profileOutput, mapAst);
 
   // result formatting
-  const result: Diagnostic[] = (validationResult.pass === false ? validationResult.errors : []).map(
-    error => diagnosticFromValidationIssue(error, DiagnosticSeverity.Error)
-  ).concat(
-    (validationResult.warnings ?? []).map(
-      warning => diagnosticFromValidationIssue(warning, DiagnosticSeverity.Warning)
+  const result: Diagnostic[] = (
+    validationResult.pass === false ? validationResult.errors : []
+  )
+    .map(error =>
+      diagnosticFromValidationIssue(error, DiagnosticSeverity.Error)
     )
-  );
+    .concat(
+      (validationResult.warnings ?? []).map(warning =>
+        diagnosticFromValidationIssue(warning, DiagnosticSeverity.Warning)
+      )
+    );
 
   return result;
 }

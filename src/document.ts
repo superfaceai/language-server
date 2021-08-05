@@ -167,7 +167,10 @@ export class ComlinkDocument implements TextDocument {
     workContext?: WorkContext<Diagnostic[]>
   ): Diagnostic[] {
     if (this.diagnosticCache !== undefined) {
-      return this.diagnosticCache.slice(0, options?.maxProblems ?? this.diagnosticCache.length);
+      return this.diagnosticCache.slice(
+        0,
+        options?.maxProblems ?? this.diagnosticCache.length
+      );
     }
 
     const result: Diagnostic[] = [];
@@ -179,12 +182,13 @@ export class ComlinkDocument implements TextDocument {
       const myNamespace = unwrapResult(this.getNamespace());
 
       // clear map cache to force relint
-      manager.all().filter(
-        doc => {
+      manager
+        .all()
+        .filter(doc => {
           if (doc.languageId !== ComlinkDocument.MAP_LANGUAGE_ID) {
             return false;
           }
-          
+
           const namespaceResult = doc.getNamespace();
           if (namespaceResult.kind === 'failure') {
             return false;
@@ -195,15 +199,16 @@ export class ComlinkDocument implements TextDocument {
           }
 
           return true;
-        }
-      ).forEach(
-        doc => { doc.clearCache() }
-      );
+        })
+        .forEach(doc => {
+          doc.clearCache();
+        });
     } else if (parsed.value.kind === 'MapDocument') {
       result.push(...lintMap(this, manager));
     }
 
     this.diagnosticCache = result;
+
     return result.slice(0, options?.maxProblems ?? result.length);
   }
 

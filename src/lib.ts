@@ -25,6 +25,7 @@ export type Result<T, E> =
 
 export function unwrapResult<T, E>(result: Result<T, E>): T {
   if (result.kind === 'failure') {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`Expected success but found failure: ${result.error}`);
   }
 
