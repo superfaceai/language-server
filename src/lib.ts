@@ -107,7 +107,7 @@ export async function recursiveWalk(
 //   }
 
 //   const path = [node];
-  
+
 //   switch (node.kind) {
 //     case 'MapDocument':
 //       path += tokenPathToPosition(position, node.header);

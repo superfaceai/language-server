@@ -13,10 +13,7 @@ import {
   SymbolKind,
   TextDocumentContentChangeEvent,
 } from 'vscode-languageserver';
-import {
-  Position,
-  TextDocument,
-} from 'vscode-languageserver-textdocument';
+import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 
 import {
   DiagnosticOptions,
@@ -106,10 +103,7 @@ export class ComlinkDocument implements TextDocument {
   }
 
   rangeFrom(span: Span): Range {
-    return Range.create(
-      this.positionAt(span.start),
-      this.positionAt(span.end)
-    )
+    return Range.create(this.positionAt(span.start), this.positionAt(span.end));
   }
 
   isCached(): boolean {

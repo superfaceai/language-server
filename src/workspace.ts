@@ -53,9 +53,10 @@ function unpackDocumentSymbol(
     parent?.name
   );
 
-  const childSymbols = symbol.children?.flatMap(
-    childSymbol => unpackDocumentSymbol(document, childSymbol, symbol)
-  ) ?? [];
+  const childSymbols =
+    symbol.children?.flatMap(childSymbol =>
+      unpackDocumentSymbol(document, childSymbol, symbol)
+    ) ?? [];
 
   return [baseSymbol, ...childSymbols];
 }
@@ -77,9 +78,9 @@ export function listWorkspaceSymbols(
     if (symbols.kind === 'failure') {
       return [];
     } else {
-      return symbols.value.flatMap(
-        symbol => unpackDocumentSymbol(document, symbol)
-      )
+      return symbols.value.flatMap(symbol =>
+        unpackDocumentSymbol(document, symbol)
+      );
     }
   });
 

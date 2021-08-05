@@ -22,7 +22,7 @@ import { listWorkspaceSymbols, loadWorkspaceDocuments } from './workspace';
  */
 class ServerContext {
   static SERVER_INFO = {
-    name: 'Superface Language Server'
+    name: 'Superface Language Server',
   };
 
   /** LSP connection on which we listen */
@@ -48,8 +48,7 @@ class ServerContext {
   // INITIALIZATION //
 
   private bindEventsConnection() {
-    this.connection.onInitialize(
-      async (event) => {
+    this.connection.onInitialize(async event => {
       this.conLogWith('onInitialize', event);
 
       const result: InitializeResult = {
@@ -68,8 +67,8 @@ class ServerContext {
           workspaceSymbolProvider: true,
           workspace: {
             workspaceFolders: {
-              supported: true
-            }
+              supported: true,
+            },
           },
           // definitionProvider: true
         },
@@ -121,6 +120,7 @@ class ServerContext {
         };
 
         const symbols = listWorkspaceSymbols(this.documents, workContext);
+
         return symbols;
       }
     );
