@@ -99,3 +99,27 @@ export async function recursiveWalk(
 
   await Promise.all(entryPromises);
 }
+
+// /** Returns a traversal path the deepest token that contains the `position`. */
+// export function tokenPathToPosition(position: number, node: WithLocationInfo<ProfileASTNode | MapASTNode>): ASTNodeBase[] {
+//   if (node.span.start > position || node.span.end < position) {
+//     return [];
+//   }
+
+//   const path = [node];
+  
+//   switch (node.kind) {
+//     case 'MapDocument':
+//       path += tokenPathToPosition(position, node.header);
+//       path += node.definitions.map(
+//         def => tokenPathToPosition(position, def)
+//       );
+//       break;
+
+//     default:
+//       // TODO
+//       break;
+//   }
+
+//   return path;
+// }

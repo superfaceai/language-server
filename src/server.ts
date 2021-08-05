@@ -2,6 +2,7 @@ import util from 'util';
 import {
   Connection,
   createConnection,
+  DefinitionLink,
   DocumentSymbol,
   InitializeResult,
   ProposedFeatures,
@@ -21,9 +22,7 @@ import { listWorkspaceSymbols, loadWorkspaceDocuments } from './workspace';
  */
 class ServerContext {
   static SERVER_INFO = {
-    name: 'Superface Language Server',
-    // TOOD: Include this and introduce the constraint to keep it in sync with package.json or leave it out?
-    // version: "0.0.1"
+    name: 'Superface Language Server'
   };
 
   /** LSP connection on which we listen */
@@ -32,6 +31,8 @@ class ServerContext {
   readonly documents: ComlinkDocuments;
 
   private readonly startTimestamp: number;
+
+  /** Global promise that is queued here from sync context and awaited from async context later. */
   private globalPromise: Promise<void> | undefined;
 
   constructor() {
@@ -47,8 +48,9 @@ class ServerContext {
   // INITIALIZATION //
 
   private bindEventsConnection() {
-    this.connection.onInitialize(params => {
-      this.conLogWith('onInitialize', params);
+    this.connection.onInitialize(
+      async (event) => {
+      this.conLogWith('onInitialize', event);
 
       const result: InitializeResult = {
         capabilities: {
@@ -64,15 +66,17 @@ class ServerContext {
           },
           documentSymbolProvider: true,
           workspaceSymbolProvider: true,
-          // workspace: {
-          //   workspaceFolders: {
-          //     supported: true
-          //   }
-          // }
+          workspace: {
+            workspaceFolders: {
+              supported: true
+            }
+          },
+          // definitionProvider: true
         },
         serverInfo: ServerContext.SERVER_INFO,
       };
-      this.conLogWith('onInitialize result', result);
+
+      await this.loadWorkspace();
 
       return result;
     });
@@ -108,6 +112,8 @@ class ServerContext {
       async (event, cancellationToken, workDoneProgress, resultProgress) => {
         this.conLog(`onWorkspaceSymbol(${event.query})`);
 
+        await this.awaitGlobalPromise();
+
         const workContext: WorkContext<SymbolInformation[]> = {
           cancellationToken,
           workDoneProgress,
@@ -116,6 +122,23 @@ class ServerContext {
 
         const symbols = listWorkspaceSymbols(this.documents, workContext);
         return symbols;
+      }
+    );
+
+    this.connection.onDefinition(
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onDefinition(${event.textDocument.uri})`);
+
+        const workContext: WorkContext<DefinitionLink[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress,
+        };
+        void workContext;
+
+        await this.awaitGlobalPromise();
+
+        return null; // TODO
       }
     );
   }
