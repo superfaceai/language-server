@@ -46,17 +46,21 @@ export function lintMap(
   map: ComlinkDocument,
   manager: ComlinkDocuments
 ): Diagnostic[] {
+  // namespace
   const mapNamespaceResult = map.getNamespaceSymbol();
   if (mapNamespaceResult.kind === 'failure') {
     return diagnosticsFromSyntaxError(mapNamespaceResult.error);
   }
   const mapNamespace = mapNamespaceResult.value.name;
 
-  const mapAst = map.getAst();
-  if (mapAst.kind === 'failure' || mapAst.value.kind === 'ProfileDocument') {
+  // map ast
+  const mapAstResult = map.getAst();
+  if (mapAstResult.kind === 'failure' || mapAstResult.value.kind === 'ProfileDocument') {
     throw new Error('Unexpected state: Invalid map document');
   }
+  const mapAst = mapAstResult.value;
 
+  // profile search
   const matchingProfile = manager.all().find(document => {
     if (document.languageId !== ComlinkDocument.PROFILE_LANGUAGE_ID) {
       return false;
@@ -74,18 +78,21 @@ export function lintMap(
     return [];
   }
 
-  const profileAst = matchingProfile.getAst();
+  // profile ast
+  const profileAstResult = matchingProfile.getAst();
   if (
-    profileAst.kind === 'failure' ||
-    profileAst.value.kind === 'MapDocument'
+    profileAstResult.kind === 'failure' ||
+    profileAstResult.value.kind === 'MapDocument'
   ) {
     throw new Error('Unexpected state: Invalid profile document');
   }
+  const profileAst = profileAstResult.value;
 
-  const profileOutput = getProfileOutput(profileAst.value);
-  const validationResult = validateMap(profileOutput, mapAst.value);
-  console.log(validationResult);
+  // lint
+  const profileOutput = getProfileOutput(profileAst);
+  const validationResult = validateMap(profileOutput, mapAst);
 
+  // result formatting
   const result: Diagnostic[] = [];
 
   const validationErrors =

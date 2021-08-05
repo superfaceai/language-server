@@ -62,6 +62,6 @@ export function listWorkspaceSymbols(
   });
 
   void symbols;
-  
-return []; // TODO
+
+  return []; // TODO: reformat document symbols into symbol information
 }
