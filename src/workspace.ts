@@ -40,6 +40,26 @@ export async function loadWorkspaceDocuments(
   workContext?.workDoneProgress.done();
 }
 
+function unpackDocumentSymbol(
+  document: ComlinkDocument,
+  symbol: DocumentSymbol,
+  parent?: DocumentSymbol
+): SymbolInformation[] {
+  const baseSymbol = SymbolInformation.create(
+    symbol.name,
+    symbol.kind,
+    symbol.range,
+    document.uri,
+    parent?.name
+  );
+
+  const childSymbols = symbol.children?.flatMap(
+    childSymbol => unpackDocumentSymbol(document, childSymbol, symbol)
+  ) ?? [];
+
+  return [baseSymbol, ...childSymbols];
+}
+
 export function listWorkspaceSymbols(
   manager: ComlinkDocuments,
   workContext?: WorkContext<SymbolInformation[]>
@@ -57,11 +77,11 @@ export function listWorkspaceSymbols(
     if (symbols.kind === 'failure') {
       return [];
     } else {
-      return symbols.value;
+      return symbols.value.flatMap(
+        symbol => unpackDocumentSymbol(document, symbol)
+      )
     }
   });
 
-  void symbols;
-
-  return []; // TODO: reformat document symbols into symbol information
+  return symbols;
 }

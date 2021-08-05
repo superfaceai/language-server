@@ -12,7 +12,7 @@ import {
 import { ComlinkDocument } from './document';
 import { ComlinkDocuments } from './documents';
 import { stripUriPrefix, WorkContext } from './lib';
-import { loadWorkspaceDocuments } from './workspace';
+import { listWorkspaceSymbols, loadWorkspaceDocuments } from './workspace';
 
 /**
  * Entry point class to the server.
@@ -108,19 +108,14 @@ class ServerContext {
       async (event, cancellationToken, workDoneProgress, resultProgress) => {
         this.conLog(`onWorkspaceSymbol(${event.query})`);
 
-        const _workContext: WorkContext<SymbolInformation[]> = {
+        const workContext: WorkContext<SymbolInformation[]> = {
           cancellationToken,
           workDoneProgress,
           resultProgress,
         };
-        void _workContext;
 
-        this.conLogWith(
-          'getWorkspaceFolders',
-          await this.connection.workspace.getWorkspaceFolders()
-        );
-
-        return null; // TODO
+        const symbols = listWorkspaceSymbols(this.documents, workContext);
+        return symbols;
       }
     );
   }

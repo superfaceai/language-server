@@ -2,18 +2,19 @@
 
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import * as superparser from '@superfaceai/parser';
+import { Span } from '@superfaceai/parser';
 import { WithLocationInfo } from '@superfaceai/parser/dist/language/syntax/rules/common';
 import * as path from 'path';
 import {
   Diagnostic,
   DocumentSymbol,
   DocumentUri,
+  Range,
   SymbolKind,
   TextDocumentContentChangeEvent,
 } from 'vscode-languageserver';
 import {
   Position,
-  Range,
   TextDocument,
 } from 'vscode-languageserver-textdocument';
 
@@ -102,6 +103,13 @@ export class ComlinkDocument implements TextDocument {
 
   offsetAt(position: Position): number {
     return this.textDocument.offsetAt(position);
+  }
+
+  rangeFrom(span: Span): Range {
+    return Range.create(
+      this.positionAt(span.start),
+      this.positionAt(span.end)
+    )
   }
 
   isCached(): boolean {

@@ -36,14 +36,8 @@ export function listProfileSymbols(
             definition.useCaseName,
             definition.title,
             SymbolKind.Interface,
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
+            document.rangeFrom(definition.span),
+            document.rangeFrom(definition.span),
             []
           );
           namespaceSymbols.push(usecaseSymbol);
@@ -56,14 +50,8 @@ export function listProfileSymbols(
             definition.modelName,
             definition.title,
             SymbolKind.Interface,
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
+            document.rangeFrom(definition.span),
+            document.rangeFrom(definition.span),
             []
           );
           namespaceSymbols.push(modelSymbol);
@@ -76,14 +64,8 @@ export function listProfileSymbols(
             definition.fieldName,
             definition.title,
             SymbolKind.Field,
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
+            document.rangeFrom(definition.span),
+            document.rangeFrom(definition.span),
             []
           );
           namespaceSymbols.push(fieldSymbol);
@@ -100,14 +82,8 @@ export function listProfileSymbols(
     ),
     undefined,
     SymbolKind.Namespace,
-    Range.create(
-      document.positionAt(profile.header.span.start),
-      document.positionAt(fileSpan.end)
-    ),
-    Range.create(
-      document.positionAt(profile.header.span.start),
-      document.positionAt(profile.header.span.start)
-    ),
+    document.rangeFrom({ start: profile.header.span.start, end: fileSpan.end }),
+    document.rangeFrom({ start: profile.header.span.start, end: fileSpan.end }),
     namespaceSymbols
   );
 
@@ -115,14 +91,8 @@ export function listProfileSymbols(
     fileNameFromUri(document.uri),
     undefined,
     SymbolKind.File,
-    Range.create(
-      document.positionAt(fileSpan.start),
-      document.positionAt(fileSpan.end)
-    ),
-    Range.create(
-      document.positionAt(fileSpan.start),
-      document.positionAt(fileSpan.start)
-    ),
+    document.rangeFrom(fileSpan),
+    document.rangeFrom(fileSpan),
     [namespaceSymbol]
   );
 
