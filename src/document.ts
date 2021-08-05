@@ -1,3 +1,5 @@
+/* eslint-disable import/namespace */
+
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import * as superparser from '@superfaceai/parser';
 import { WithLocationInfo } from '@superfaceai/parser/dist/language/syntax/rules/common';

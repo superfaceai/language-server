@@ -11,7 +11,7 @@ export async function loadWorkspaceDocuments(
   folders: string[],
   manager: ComlinkDocuments,
   workContext?: WorkContext<unknown>
-) {
+): Promise<void> {
   const entryCallback = async (entry: WalkEntry) => {
     if (!entry.isFile) {
       return;
