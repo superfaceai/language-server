@@ -90,15 +90,15 @@ class ServerContext {
         const document = await this.documents.loadDocument(
           event.textDocument.uri
         );
+
+        if (!document.isCached()) {
+          void this.diagnoseDocument(document);
+        }
+
         const symbols = document.getSymbols(workContext);
         if (symbols.kind === 'failure') {
           return undefined;
         }
-
-        this.conLogWith(
-          `onDocumentSymbol(${event.textDocument.uri})`,
-          symbols.value
-        );
 
         return symbols.value;
       }

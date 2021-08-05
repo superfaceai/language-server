@@ -23,7 +23,7 @@ import {
   lintMap,
 } from './diagnostics';
 import { ComlinkDocuments } from './documents';
-import { Result, WorkContext } from './lib';
+import { Result, unwrapResult, WorkContext } from './lib';
 import { listMapSymbols, listProfileSymbols } from './symbols';
 
 export class ComlinkDocument implements TextDocument {
@@ -61,6 +61,7 @@ export class ComlinkDocument implements TextDocument {
   > = undefined;
   private symbolCache?: Result<DocumentSymbol[], superparser.SyntaxError> =
     undefined;
+  private diagnosticCache?: Diagnostic[];
 
   constructor(private textDocument: TextDocument) {}
 
@@ -103,9 +104,14 @@ export class ComlinkDocument implements TextDocument {
     return this.textDocument.offsetAt(position);
   }
 
+  isCached(): boolean {
+    return this.astCache !== undefined;
+  }
+
   clearCache(): void {
     this.astCache = undefined;
     this.symbolCache = undefined;
+    this.diagnosticCache = undefined;
   }
 
   getAst(
@@ -160,15 +166,44 @@ export class ComlinkDocument implements TextDocument {
     options?: DiagnosticOptions,
     workContext?: WorkContext<Diagnostic[]>
   ): Diagnostic[] {
+    if (this.diagnosticCache !== undefined) {
+      return this.diagnosticCache.slice(0, options?.maxProblems ?? this.diagnosticCache.length);
+    }
+
     const result: Diagnostic[] = [];
 
     const parsed = this.getAst(workContext);
     if (parsed.kind === 'failure') {
       result.push(...diagnosticsFromSyntaxError(parsed.error));
+    } else if (parsed.value.kind === 'ProfileDocument') {
+      const myNamespace = unwrapResult(this.getNamespace());
+
+      // clear map cache to force relint
+      manager.all().filter(
+        doc => {
+          if (doc.languageId !== ComlinkDocument.MAP_LANGUAGE_ID) {
+            return false;
+          }
+          
+          const namespaceResult = doc.getNamespace();
+          if (namespaceResult.kind === 'failure') {
+            return false;
+          }
+
+          if (namespaceResult.value !== myNamespace) {
+            return false;
+          }
+
+          return true;
+        }
+      ).forEach(
+        doc => { doc.clearCache() }
+      );
     } else if (parsed.value.kind === 'MapDocument') {
       result.push(...lintMap(this, manager));
     }
 
+    this.diagnosticCache = result;
     return result.slice(0, options?.maxProblems ?? result.length);
   }
 
@@ -205,9 +240,9 @@ export class ComlinkDocument implements TextDocument {
     return result;
   }
 
-  getNamespaceSymbol(
+  getNamespace(
     workContext?: WorkContext<DocumentSymbol>
-  ): Result<DocumentSymbol, superparser.SyntaxError> {
+  ): Result<string, superparser.SyntaxError> {
     let wc = undefined;
     if (workContext !== undefined) {
       wc = {
@@ -228,6 +263,6 @@ export class ComlinkDocument implements TextDocument {
       throw new Error('Unexpected document symbol structure');
     }
 
-    return { kind: 'success', value: namespaceSymbol };
+    return { kind: 'success', value: namespaceSymbol.name };
   }
 }

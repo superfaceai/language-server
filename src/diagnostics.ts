@@ -1,10 +1,11 @@
 import * as superparser from '@superfaceai/parser';
-import { getProfileOutput, validateMap } from '@superfaceai/parser';
-import { inspect } from 'util';
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
+import { formatIssueContext, getProfileOutput, validateMap, ValidationIssue } from '@superfaceai/parser';
+import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
 
 import { ComlinkDocument } from './document';
 import { ComlinkDocuments } from './documents';
+
+import { unwrapResult } from './lib';
 
 export type DiagnosticOptions = {
   /** Specifies the maximum number of diagnostics to generate. */
@@ -42,23 +43,55 @@ export function diagnosticsFromSyntaxError(
   return result;
 }
 
+function parseLinterPath(path?: string[]): { position: Position, rest: string[] } {
+  if (path === undefined || path.length === 0) {
+    return { position: Position.create(0, 0), rest: [] }
+  }
+
+  let position = Position.create(0, 0);
+  try {
+    const split = path[0].split(':');
+    const line = parseInt(split[0]);
+    const column = parseInt(split[1]);
+
+    position = Position.create(line - 1, column - 1);
+  } catch (e: unknown) {}
+
+  return {
+    position,
+    rest: path.slice(1)
+  }
+}
+
+function diagnosticFromValidationIssue(issue: ValidationIssue, severity?: DiagnosticSeverity): Diagnostic {
+  const { position } = parseLinterPath(issue.context.path);
+    
+  const diag = Diagnostic.create(
+    Range.create(position, position),
+    formatIssueContext(issue),
+    severity,
+    issue.kind
+  );
+
+  return diag;
+}
+
 export function lintMap(
   map: ComlinkDocument,
   manager: ComlinkDocuments
 ): Diagnostic[] {
   // namespace
-  const mapNamespaceResult = map.getNamespaceSymbol();
+  const mapNamespaceResult = map.getNamespace();
   if (mapNamespaceResult.kind === 'failure') {
     return diagnosticsFromSyntaxError(mapNamespaceResult.error);
   }
-  const mapNamespace = mapNamespaceResult.value.name;
+  const mapNamespace = mapNamespaceResult.value;
 
   // map ast
-  const mapAstResult = map.getAst();
-  if (mapAstResult.kind === 'failure' || mapAstResult.value.kind === 'ProfileDocument') {
+  const mapAst = unwrapResult(map.getAst());
+  if (mapAst.kind === 'ProfileDocument') {
     throw new Error('Unexpected state: Invalid map document');
   }
-  const mapAst = mapAstResult.value;
 
   // profile search
   const matchingProfile = manager.all().find(document => {
@@ -66,12 +99,12 @@ export function lintMap(
       return false;
     }
 
-    const namespace = document.getNamespaceSymbol();
+    const namespace = document.getNamespace();
     if (namespace.kind === 'failure') {
       return false;
     }
 
-    return namespace.value.name === mapNamespace;
+    return namespace.value === mapNamespace;
   });
 
   if (matchingProfile === undefined) {
@@ -79,42 +112,23 @@ export function lintMap(
   }
 
   // profile ast
-  const profileAstResult = matchingProfile.getAst();
-  if (
-    profileAstResult.kind === 'failure' ||
-    profileAstResult.value.kind === 'MapDocument'
-  ) {
+  const profileAst = unwrapResult(matchingProfile.getAst());
+  if (profileAst.kind === 'MapDocument') {
     throw new Error('Unexpected state: Invalid profile document');
   }
-  const profileAst = profileAstResult.value;
 
   // lint
   const profileOutput = getProfileOutput(profileAst);
   const validationResult = validateMap(profileOutput, mapAst);
 
   // result formatting
-  const result: Diagnostic[] = [];
-
-  const validationErrors =
-    validationResult.pass === false ? validationResult.errors : [];
-  for (const error of validationErrors) {
-    const diag = Diagnostic.create(
-      Range.create(0, 0, 0, 1024),
-      `${error.kind}: ${inspect(error.context)}`,
-      DiagnosticSeverity.Error
-    );
-    result.push(diag);
-  }
-
-  const validationWarnings = validationResult.warnings ?? [];
-  for (const warning of validationWarnings) {
-    const diag = Diagnostic.create(
-      Range.create(0, 0, 0, 1024),
-      `${warning.kind}: ${inspect(warning.context)}`,
-      DiagnosticSeverity.Warning
-    );
-    result.push(diag);
-  }
+  const result: Diagnostic[] = (validationResult.pass === false ? validationResult.errors : []).map(
+    error => diagnosticFromValidationIssue(error, DiagnosticSeverity.Error)
+  ).concat(
+    (validationResult.warnings ?? []).map(
+      warning => diagnosticFromValidationIssue(warning, DiagnosticSeverity.Warning)
+    )
+  );
 
   return result;
 }

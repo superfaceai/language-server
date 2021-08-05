@@ -13,15 +13,23 @@ export type WorkContext<PartialResult = void> = {
   resultProgress?: ResultProgressReporter<PartialResult>;
 };
 
-export type Result<R, E> =
+export type Result<T, E> =
   | {
       kind: 'success';
-      value: R;
+      value: T;
     }
   | {
       kind: 'failure';
       error: E;
     };
+
+export function unwrapResult<T, E>(result: Result<T, E>): T {
+  if (result.kind === 'failure') {
+    throw new Error(`Expected success but found failure: ${result.error}`);
+  }
+
+  return result.value;
+}
 
 export function fileNameFromUri(uri: DocumentUri): string {
   const split = uri.split('/');

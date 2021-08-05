@@ -5,6 +5,7 @@ import {
 } from 'vscode-languageserver';
 
 import { ComlinkDocument } from './document';
+import { stripUriPrefix } from './lib';
 
 export class ComlinkDocuments {
   private documents: Record<DocumentUri, ComlinkDocument>;
@@ -70,7 +71,7 @@ export class ComlinkDocuments {
       return managed;
     }
 
-    const content = await fsp.readFile(uri, { encoding: 'utf-8' });
+    const content = await fsp.readFile(stripUriPrefix(uri), { encoding: 'utf-8' });
 
     let languageId = 'plaintext';
     if (ComlinkDocument.hasProfileExtension(uri)) {

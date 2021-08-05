@@ -24,7 +24,7 @@ export async function loadWorkspaceDocuments(
       return;
     }
 
-    await manager.loadDocument(entry.path);
+    await manager.loadDocument(`file://${entry.path}`);
   };
 
   // TODO: Can be cancellable - throw custom exception in the callback and catch it here
