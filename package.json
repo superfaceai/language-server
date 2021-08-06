@@ -2,7 +2,7 @@
   "name": "@superfaceai/language-server",
   "description": "Superface Language Server",
   "repository": "https://github.com/superfaceai/language-server.git",
-  "version": "0.0.14-beta.0",
+  "version": "0.0.15-beta.0",
   "author": "Superface Team",
   "license": "MIT",
   "main": "dist/server",
@@ -20,10 +20,10 @@
     "eslint-plugin-simple-import-sort": "^5.0.3",
     "prettier": "^2.1.2",
     "rimraf": "^3.0.2",
-    "typescript": "^4.0.5"
+    "typescript": "^4.3"
   },
   "dependencies": {
-    "@superfaceai/parser": "0.0.19",
+    "@superfaceai/parser": "0.0.22-beta.0",
     "vscode-languageserver": "^7",
     "vscode-languageserver-textdocument": "^1.0.1"
   },
@@ -36,6 +36,6 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier -c src/",
     "format:fix": "prettier --write src/",
-    "prepush": "yarn lint && yarn format"
+    "prepush": "yarn build && yarn lint && yarn format"
   }
 }

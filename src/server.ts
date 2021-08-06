@@ -1,15 +1,19 @@
 import util from 'util';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
   Connection,
   createConnection,
+  DefinitionLink,
+  DocumentSymbol,
   InitializeResult,
   ProposedFeatures,
-  TextDocuments,
+  SymbolInformation,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
 
-import { diagnoseDocument } from './diagnostics';
+import { ComlinkDocument } from './document';
+import { ComlinkDocuments } from './documents';
+import { stripUriPrefix, WorkContext } from './lib';
+import { listWorkspaceSymbols, loadWorkspaceDocuments } from './workspace';
 
 /**
  * Entry point class to the server.
@@ -19,32 +23,33 @@ import { diagnoseDocument } from './diagnostics';
 class ServerContext {
   static SERVER_INFO = {
     name: 'Superface Language Server',
-    // TOOD: Include this and introduce the constraint to keep it in sync with package.json or leave it out?
-    // version: "0.0.1"
   };
 
   /** LSP connection on which we listen */
   readonly connection: Connection;
   /** Manager for open text documents */
-  readonly documents: TextDocuments<TextDocument>;
+  readonly documents: ComlinkDocuments;
 
   private readonly startTimestamp: number;
 
+  /** Global promise that is queued here from sync context and awaited from async context later. */
+  private globalPromise: Promise<void> | undefined;
+
   constructor() {
     this.connection = createConnection(ProposedFeatures.all);
-    this.documents = new TextDocuments(TextDocument);
+    this.documents = new ComlinkDocuments();
 
     this.startTimestamp = Date.now();
 
-    this.bindEventsDocuments();
     this.bindEventsConnection();
+    this.bindEventsDocuments();
   }
 
   // INITIALIZATION //
 
   private bindEventsConnection() {
-    this.connection.onInitialize(params => {
-      this.conLogWith('Received to initialization', params);
+    this.connection.onInitialize(async event => {
+      this.conLogWith('onInitialize', event);
 
       const result: InitializeResult = {
         capabilities: {
@@ -58,53 +63,167 @@ class ServerContext {
               includeText: false,
             },
           },
+          documentSymbolProvider: true,
+          workspaceSymbolProvider: true,
+          workspace: {
+            workspaceFolders: {
+              supported: true,
+            },
+          },
+          // definitionProvider: true
         },
         serverInfo: ServerContext.SERVER_INFO,
       };
-      this.conLogWith('Responding to initialization', result);
+
+      await this.loadWorkspace();
 
       return result;
     });
+
+    this.connection.onDocumentSymbol(
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onDocumentSymbol(${event.textDocument.uri})`);
+
+        const workContext: WorkContext<DocumentSymbol[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress,
+        };
+
+        const document = await this.documents.loadDocument(
+          event.textDocument.uri
+        );
+
+        if (!document.isCached()) {
+          void this.diagnoseDocument(document);
+        }
+
+        const symbols = document.getSymbols(workContext);
+        if (symbols.kind === 'failure') {
+          return undefined;
+        }
+
+        return symbols.value;
+      }
+    );
+
+    this.connection.onWorkspaceSymbol(
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onWorkspaceSymbol(${event.query})`);
+
+        await this.awaitGlobalPromise();
+
+        const workContext: WorkContext<SymbolInformation[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress,
+        };
+
+        const symbols = listWorkspaceSymbols(this.documents, workContext);
+
+        return symbols;
+      }
+    );
+
+    this.connection.onDefinition(
+      async (event, cancellationToken, workDoneProgress, resultProgress) => {
+        this.conLog(`onDefinition(${event.textDocument.uri})`);
+
+        const workContext: WorkContext<DefinitionLink[]> = {
+          cancellationToken,
+          workDoneProgress,
+          resultProgress,
+        };
+        void workContext;
+
+        await this.awaitGlobalPromise();
+
+        return null; // TODO
+      }
+    );
   }
 
   private bindEventsDocuments() {
-    this.documents.onDidOpen(event => {
-      this.conLog(`Document opened ${event.document.uri}`);
+    this.connection.onDidOpenTextDocument(event => {
+      this.conLog(`onDidOpenTextDocument(${event.textDocument.uri})`);
+
+      const document = this.documents.create(
+        event.textDocument.uri,
+        event.textDocument.languageId,
+        event.textDocument.version,
+        event.textDocument.text
+      );
+
+      this.queueGlobalPromise(this.loadWorkspace());
+
+      void this.diagnoseDocument(document);
     });
 
-    this.documents.onDidChangeContent((event): void => {
-      this.conLog(`Document changed ${event.document.uri}`);
+    this.connection.onDidChangeTextDocument(event => {
+      this.conLog(`onDidChangeTextDocument(${event.textDocument.uri})`);
 
-      if (
-        event.document.languageId !== 'comlink-map' &&
-        event.document.languageId !== 'comlink-profile'
-      ) {
-        this.conLog('Ignoring document because it is not a comlink document');
-
+      if (event.contentChanges.length === 0) {
         return;
       }
 
-      const diagnostics = diagnoseDocument(event.document);
-      this.conLogWith('Sending diagnostics', diagnostics);
-      this.connection.sendDiagnostics({
-        uri: event.document.uri,
-        diagnostics,
-      });
+      const document = this.documents.update(
+        event.textDocument.uri,
+        event.contentChanges,
+        event.textDocument.version
+      );
+
+      void this.diagnoseDocument(document);
     });
 
-    this.documents.onDidClose(event => {
-      this.conLog(`Document closed ${event.document.uri}`);
+    this.connection.onDidCloseTextDocument(event => {
+      this.conLog(`onDidCloseTextDocument(${event.textDocument.uri})`);
+
+      this.documents.remove(event.textDocument.uri);
     });
   }
-
-  // LOGIC //
 
   /**
    * Begins listening on the connection.
    */
   listen() {
-    this.documents.listen(this.connection);
     this.connection.listen();
+  }
+
+  // LOGIC //
+
+  private queueGlobalPromise(promise: Promise<void>) {
+    if (this.globalPromise === undefined) {
+      this.globalPromise = promise;
+    } else {
+      this.globalPromise = Promise.all([this.globalPromise, promise]).then(
+        _ => undefined
+      );
+    }
+  }
+
+  private async awaitGlobalPromise() {
+    if (this.globalPromise !== undefined) {
+      await this.globalPromise;
+      this.globalPromise = undefined;
+    }
+  }
+
+  private async loadWorkspace(): Promise<void> {
+    const promise = this.connection.workspace
+      .getWorkspaceFolders()
+      .then(folders => (folders ?? []).map(f => stripUriPrefix(f.uri)))
+      .then(folders => loadWorkspaceDocuments(folders, this.documents))
+      .catch(err => this.conLogWith('Failed to load workspace documents', err));
+
+    return promise;
+  }
+
+  private async diagnoseDocument(document: ComlinkDocument): Promise<void> {
+    await this.awaitGlobalPromise();
+
+    const diagnostics = document.getDiagnostics(this.documents);
+    this.conLogWith('Sending diagnostics', diagnostics);
+    this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
   }
 
   // UTILITY //
@@ -144,7 +263,7 @@ class ServerContext {
       depth: 5,
       colors: false,
     });
-    this.conLog(`${message} with ${inspected}`);
+    this.conLog(`${message}: ${inspected}`);
   }
 }
 
