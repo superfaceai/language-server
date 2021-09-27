@@ -248,23 +248,23 @@ class ServerContext {
   /**
    * Logs the message into the connection channel and formats it with server process info.
    */
-  conLog(...values: any[]) {
+  conLog(...values: unknown[]) {
     const processed = values.map(
       value => {
-        let message;
-        if (typeof value === "object") {
+        let message: string;
+        if (typeof value === 'object') {
           message = util.inspect(value, {
             showHidden: false,
             depth: 5,
             colors: false,
           });
         } else {
-          message = value.toString();
+          message = (value as { toString: () => string }).toString();
         }
 
         return message;
       }
-    ).join(" ");
+    ).join(' ');
 
 
     this.connection.console.log(
