@@ -14,7 +14,7 @@ import {
 
 import { ComlinkDocument } from './document';
 import { ComlinkDocuments } from './documents';
-import { unwrapResult } from './lib';
+import { LogFn, unwrapResult } from './lib';
 
 export type DiagnosticOptions = {
   /** Specifies the maximum number of diagnostics to generate. */
@@ -95,7 +95,8 @@ function diagnosticFromValidationIssue(
 
 export function lintMap(
   map: ComlinkDocument,
-  manager: ComlinkDocuments
+  manager: ComlinkDocuments,
+  context?: { log?: LogFn }
 ): Diagnostic[] {
   // namespace
   const mapNamespaceResult = map.getNamespace();
@@ -137,6 +138,8 @@ export function lintMap(
   // lint
   const profileOutput = getProfileOutput(profileAst);
   const validationResult = validateMap(profileOutput, mapAst);
+
+  context?.log?.('Validation result:', validationResult);
 
   // result formatting
   const result: Diagnostic[] = (
