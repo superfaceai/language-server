@@ -49,7 +49,7 @@ class ServerContext {
 
   private bindEventsConnection() {
     this.connection.onInitialize(async event => {
-      this.conLogWith('onInitialize', event);
+      this.conLog('onInitialize:', event);
 
       const result: InitializeResult = {
         capabilities: {
@@ -213,7 +213,7 @@ class ServerContext {
       .getWorkspaceFolders()
       .then(folders => (folders ?? []).map(f => stripUriPrefix(f.uri)))
       .then(folders => loadWorkspaceDocuments(folders, this.documents))
-      .catch(err => this.conLogWith('Failed to load workspace documents', err));
+      .catch(err => this.conLog('Failed to load workspace documents:', err));
 
     return promise;
   }
@@ -221,8 +221,8 @@ class ServerContext {
   private async diagnoseDocument(document: ComlinkDocument): Promise<void> {
     await this.awaitGlobalPromise();
 
-    const diagnostics = document.getDiagnostics(this.documents);
-    this.conLogWith('Sending diagnostics', diagnostics);
+    const diagnostics = document.getDiagnostics(this.documents, undefined, { log: this.conLog.bind(this) });
+    this.conLog('Sending diagnostics:', diagnostics);
     this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
   }
 
@@ -248,22 +248,28 @@ class ServerContext {
   /**
    * Logs the message into the connection channel and formats it with server process info.
    */
-  conLog(message: string) {
-    this.connection.console.log(
-      `[+${this.timestampNow()}](pid ${process.pid}) ${message}`
-    );
-  }
+  conLog(...values: any[]) {
+    const processed = values.map(
+      value => {
+        let message;
+        if (typeof value === "object") {
+          message = util.inspect(value, {
+            showHidden: false,
+            depth: 5,
+            colors: false,
+          });
+        } else {
+          message = value.toString();
+        }
 
-  /**
-   * Logs the message to the connection log and appends `util.inspect(obj)` output.
-   */
-  conLogWith(message: string, obj: unknown) {
-    const inspected = util.inspect(obj, {
-      showHidden: false,
-      depth: 5,
-      colors: false,
-    });
-    this.conLog(`${message}: ${inspected}`);
+        return message;
+      }
+    ).join(" ");
+
+
+    this.connection.console.log(
+      `[+${this.timestampNow()}](pid ${process.pid}) ${processed}`
+    );
   }
 }
 

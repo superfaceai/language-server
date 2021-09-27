@@ -7,6 +7,8 @@ import {
 } from 'vscode-languageserver';
 import { DocumentUri } from 'vscode-languageserver-textdocument';
 
+export type LogFn = (...values: any[]) => void;
+
 export type WorkContext<PartialResult = void> = {
   cancellationToken: CancellationToken;
   workDoneProgress: WorkDoneProgressReporter;

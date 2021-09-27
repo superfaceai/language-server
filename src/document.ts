@@ -21,7 +21,7 @@ import {
   lintMap,
 } from './diagnostics';
 import { ComlinkDocuments } from './documents';
-import { Result, unwrapResult, WorkContext } from './lib';
+import { LogFn, Result, unwrapResult, WorkContext } from './lib';
 import { listMapSymbols, listProfileSymbols } from './symbols';
 
 export class ComlinkDocument implements TextDocument {
@@ -166,7 +166,10 @@ export class ComlinkDocument implements TextDocument {
   getDiagnostics(
     manager: ComlinkDocuments,
     options?: DiagnosticOptions,
-    workContext?: WorkContext<Diagnostic[]>
+    context?: {
+      workContext?: WorkContext<Diagnostic[]>,
+      log?: LogFn
+    }
   ): Diagnostic[] {
     if (this.diagnosticCache !== undefined) {
       return this.diagnosticCache.slice(
@@ -177,7 +180,7 @@ export class ComlinkDocument implements TextDocument {
 
     const result: Diagnostic[] = [];
 
-    const parsed = this.getAst(workContext);
+    const parsed = this.getAst(context?.workContext);
     if (parsed.kind === 'failure') {
       result.push(...diagnosticsFromSyntaxError(parsed.error));
     } else if (parsed.value.kind === 'ProfileDocument') {
@@ -206,7 +209,9 @@ export class ComlinkDocument implements TextDocument {
           doc.clearCache();
         });
     } else if (parsed.value.kind === 'MapDocument') {
-      result.push(...lintMap(this, manager));
+      result.push(
+        ...lintMap(this, manager, { log: context?.log })
+      );
     }
 
     this.diagnosticCache = result;
