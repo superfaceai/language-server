@@ -167,8 +167,8 @@ export class ComlinkDocument implements TextDocument {
     manager: ComlinkDocuments,
     options?: DiagnosticOptions,
     context?: {
-      workContext?: WorkContext<Diagnostic[]>,
-      log?: LogFn
+      workContext?: WorkContext<Diagnostic[]>;
+      log?: LogFn;
     }
   ): Diagnostic[] {
     if (this.diagnosticCache !== undefined) {
@@ -209,9 +209,7 @@ export class ComlinkDocument implements TextDocument {
           doc.clearCache();
         });
     } else if (parsed.value.kind === 'MapDocument') {
-      result.push(
-        ...lintMap(this, manager, { log: context?.log })
-      );
+      result.push(...lintMap(this, manager, { log: context?.log }));
     }
 
     this.diagnosticCache = result;

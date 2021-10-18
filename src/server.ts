@@ -221,7 +221,9 @@ class ServerContext {
   private async diagnoseDocument(document: ComlinkDocument): Promise<void> {
     await this.awaitGlobalPromise();
 
-    const diagnostics = document.getDiagnostics(this.documents, undefined, { log: this.conLog.bind(this) });
+    const diagnostics = document.getDiagnostics(this.documents, undefined, {
+      log: this.conLog.bind(this),
+    });
     this.conLog('Sending diagnostics:', diagnostics);
     this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
   }
@@ -249,8 +251,8 @@ class ServerContext {
    * Logs the message into the connection channel and formats it with server process info.
    */
   conLog(...values: unknown[]) {
-    const processed = values.map(
-      value => {
+    const processed = values
+      .map(value => {
         let message: string;
         if (typeof value === 'object') {
           message = util.inspect(value, {
@@ -263,9 +265,8 @@ class ServerContext {
         }
 
         return message;
-      }
-    ).join(' ');
-
+      })
+      .join(' ');
 
     this.connection.console.log(
       `[+${this.timestampNow()}](pid ${process.pid}) ${processed}`
