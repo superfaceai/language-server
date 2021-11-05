@@ -26,11 +26,6 @@ export function diagnosticsFromSyntaxError(
 ): Diagnostic[] {
   const result: Diagnostic[] = [];
 
-  const endLocation = superparser.computeEndLocation(
-    error.source.body.slice(error.span.start, error.span.end),
-    error.location
-  );
-
   let message = error.detail;
   if (error.hint !== undefined) {
     message += `\n\n${error.hint}`;
@@ -38,10 +33,10 @@ export function diagnosticsFromSyntaxError(
 
   const diag: Diagnostic = {
     range: Range.create(
-      error.location.line - 1,
-      error.location.column - 1,
-      endLocation.line - 1,
-      endLocation.column - 1
+      error.location.start.line - 1,
+      error.location.start.column - 1,
+      error.location.end.line - 1,
+      error.location.end.column - 1
     ),
     message,
     severity: DiagnosticSeverity.Error,

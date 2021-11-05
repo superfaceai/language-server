@@ -1,6 +1,6 @@
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
-import { WithLocationInfo } from '@superfaceai/parser/dist/language/syntax/rules/common';
-import { DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver-types';
+import { WithLocation } from '@superfaceai/parser/dist/language/syntax/rules/common';
+import { DocumentSymbol, SymbolKind } from 'vscode-languageserver-types';
 
 import { ComlinkDocument } from './document';
 import { fileNameFromUri, WorkContext } from './lib';
@@ -20,24 +20,25 @@ function formatNamespace(
 
 export function listProfileSymbols(
   document: ComlinkDocument,
-  profile: WithLocationInfo<ProfileDocumentNode>,
+  profile: WithLocation<ProfileDocumentNode>,
   workContext?: WorkContext<DocumentSymbol[]>
 ): DocumentSymbol[] {
   workContext?.workDoneProgress.begin('Gathering profile symbols');
 
-  const fileSpan = profile.span;
-
   const namespaceSymbols = [];
   for (const definition of profile.definitions) {
+    // TODO: improve (selection) ranges
+    const definitionRange = document.rangeFromSpan(definition.location.start.charIndex, definition.location.end.charIndex);
+
     switch (definition.kind) {
       case 'UseCaseDefinition':
         {
           const usecaseSymbol = DocumentSymbol.create(
             definition.useCaseName,
-            definition.title,
+            definition.documentation?.title,
             SymbolKind.Interface,
-            document.rangeFrom(definition.span),
-            document.rangeFrom(definition.span),
+            definitionRange,
+            definitionRange,
             []
           );
           namespaceSymbols.push(usecaseSymbol);
@@ -48,10 +49,10 @@ export function listProfileSymbols(
         {
           const modelSymbol = DocumentSymbol.create(
             definition.modelName,
-            definition.title,
+            definition.documentation?.title,
             SymbolKind.Interface,
-            document.rangeFrom(definition.span),
-            document.rangeFrom(definition.span),
+            definitionRange,
+            definitionRange,
             []
           );
           namespaceSymbols.push(modelSymbol);
@@ -62,10 +63,10 @@ export function listProfileSymbols(
         {
           const fieldSymbol = DocumentSymbol.create(
             definition.fieldName,
-            definition.title,
+            definition.documentation?.title,
             SymbolKind.Field,
-            document.rangeFrom(definition.span),
-            document.rangeFrom(definition.span),
+            definitionRange,
+            definitionRange,
             []
           );
           namespaceSymbols.push(fieldSymbol);
@@ -73,6 +74,11 @@ export function listProfileSymbols(
         break;
     }
   }
+
+  const fileSpan = {
+    start: profile.location.start.charIndex,
+    end: profile.location.end.charIndex
+  };
 
   const namespaceSymbol = DocumentSymbol.create(
     formatNamespace(
@@ -82,8 +88,8 @@ export function listProfileSymbols(
     ),
     undefined,
     SymbolKind.Namespace,
-    document.rangeFrom({ start: profile.header.span.start, end: fileSpan.end }),
-    document.rangeFrom({ start: profile.header.span.start, end: fileSpan.end }),
+    document.rangeFromSpan(profile.header.location.start.charIndex, fileSpan.end),
+    document.rangeFromSpan(profile.header.location.start.charIndex, fileSpan.end),
     namespaceSymbols
   );
 
@@ -91,8 +97,8 @@ export function listProfileSymbols(
     fileNameFromUri(document.uri),
     undefined,
     SymbolKind.File,
-    document.rangeFrom(fileSpan),
-    document.rangeFrom(fileSpan),
+    document.rangeFromSpan(fileSpan.start, fileSpan.end),
+    document.rangeFromSpan(fileSpan.start, fileSpan.end),
     [namespaceSymbol]
   );
 
@@ -103,15 +109,15 @@ export function listProfileSymbols(
 
 export function listMapSymbols(
   document: ComlinkDocument,
-  map: WithLocationInfo<MapDocumentNode>,
+  map: WithLocation<MapDocumentNode>,
   workContext?: WorkContext<DocumentSymbol[]>
 ): DocumentSymbol[] {
   workContext?.workDoneProgress.begin('Gathering map symbols');
 
-  const fileSpan = map.span;
-
   const namespaceSymbols = [];
   for (const definition of map.definitions) {
+    const definitionRange = document.rangeFromSpan(definition.location.start.charIndex, definition.location.end.charIndex);
+
     switch (definition.kind) {
       case 'MapDefinition':
         {
@@ -119,14 +125,8 @@ export function listMapSymbols(
             definition.name,
             undefined,
             SymbolKind.Class,
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
+            definitionRange,
+            definitionRange,
             []
           );
           namespaceSymbols.push(mapSymbol);
@@ -139,14 +139,8 @@ export function listMapSymbols(
             definition.name,
             undefined,
             SymbolKind.Function,
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
-            Range.create(
-              document.positionAt(definition.span.start),
-              document.positionAt(definition.span.end)
-            ),
+            definitionRange,
+            definitionRange,
             []
           );
           namespaceSymbols.push(operationSymbol);
@@ -154,6 +148,11 @@ export function listMapSymbols(
         break;
     }
   }
+
+  const fileSpan = {
+    start: map.location.start.charIndex,
+    end: map.location.end.charIndex
+  };
 
   const namespaceSymbol = DocumentSymbol.create(
     formatNamespace(
@@ -163,14 +162,8 @@ export function listMapSymbols(
     ),
     undefined,
     SymbolKind.Namespace,
-    Range.create(
-      document.positionAt(map.header.span.start),
-      document.positionAt(fileSpan.end)
-    ),
-    Range.create(
-      document.positionAt(map.header.span.start),
-      document.positionAt(map.header.span.start)
-    ),
+    document.rangeFromSpan(map.header.location.start.charIndex, fileSpan.end),
+    document.rangeFromSpan(map.header.location.start.charIndex, fileSpan.end),
     namespaceSymbols
   );
 
@@ -178,14 +171,8 @@ export function listMapSymbols(
     fileNameFromUri(document.uri),
     undefined,
     SymbolKind.File,
-    Range.create(
-      document.positionAt(fileSpan.start),
-      document.positionAt(fileSpan.end)
-    ),
-    Range.create(
-      document.positionAt(fileSpan.start),
-      document.positionAt(fileSpan.start)
-    ),
+    document.rangeFromSpan(fileSpan.start, fileSpan.end),
+    document.rangeFromSpan(fileSpan.start, fileSpan.end),
     [namespaceSymbol]
   );
 

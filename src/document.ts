@@ -2,8 +2,7 @@
 
 import { MapDocumentNode, ProfileDocumentNode } from '@superfaceai/ast';
 import * as superparser from '@superfaceai/parser';
-import { Span } from '@superfaceai/parser';
-import { WithLocationInfo } from '@superfaceai/parser/dist/language/syntax/rules/common';
+import { WithLocation } from '@superfaceai/parser/dist/language/syntax/rules/common';
 import * as path from 'path';
 import {
   Diagnostic,
@@ -54,7 +53,7 @@ export class ComlinkDocument implements TextDocument {
   }
 
   private astCache?: Result<
-    WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+    WithLocation<ProfileDocumentNode> | WithLocation<MapDocumentNode>,
     superparser.SyntaxError
   > = undefined;
   private symbolCache?: Result<DocumentSymbol[], superparser.SyntaxError> =
@@ -102,8 +101,8 @@ export class ComlinkDocument implements TextDocument {
     return this.textDocument.offsetAt(position);
   }
 
-  rangeFrom(span: Span): Range {
-    return Range.create(this.positionAt(span.start), this.positionAt(span.end));
+  rangeFromSpan(start: number, end: number): Range {
+    return Range.create(this.positionAt(start), this.positionAt(end));
   }
 
   isCached(): boolean {
@@ -119,7 +118,7 @@ export class ComlinkDocument implements TextDocument {
   getAst(
     workContext?: WorkContext<unknown>
   ): Result<
-    WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+    WithLocation<ProfileDocumentNode> | WithLocation<MapDocumentNode>,
     superparser.SyntaxError
   > {
     if (this.astCache !== undefined) {
@@ -132,7 +131,7 @@ export class ComlinkDocument implements TextDocument {
     );
 
     let result: Result<
-      WithLocationInfo<ProfileDocumentNode> | WithLocationInfo<MapDocumentNode>,
+      WithLocation<ProfileDocumentNode> | WithLocation<MapDocumentNode>,
       superparser.SyntaxError
     >;
     if (this.languageId === ComlinkDocument.PROFILE_LANGUAGE_ID) {
