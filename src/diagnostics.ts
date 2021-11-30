@@ -5,6 +5,7 @@ import {
   validateMap,
   ValidationIssue,
 } from '@superfaceai/parser';
+import { inspect } from 'util';
 import {
   Diagnostic,
   DiagnosticSeverity,
@@ -26,60 +27,50 @@ export function diagnosticsFromSyntaxError(
 ): Diagnostic[] {
   const result: Diagnostic[] = [];
 
-  let message = error.detail;
-  if (error.hint !== undefined) {
-    message += `\n\n${error.hint}`;
-  }
+  const range = Range.create(
+    error.location.start.line - 1,
+    error.location.start.column - 1,
+    error.location.end.line - 1,
+    error.location.end.column - 1
+  );
 
   const diag: Diagnostic = {
-    range: Range.create(
-      error.location.start.line - 1,
-      error.location.start.column - 1,
-      error.location.end.line - 1,
-      error.location.end.column - 1
-    ),
-    message,
+    range,
+    message: error.detail,
     severity: DiagnosticSeverity.Error,
     source: error.category,
   };
   result.push(diag);
 
+  for (const hint of error.hints) {
+    const hintDiag: Diagnostic = {
+      range,
+      message: hint,
+      severity: DiagnosticSeverity.Information,
+      source: 'Error hint'
+    };
+    result.push(hintDiag);
+  }
+
   return result;
-}
-
-function parseLinterPath(path?: string[]): {
-  position: Position;
-  rest: string[];
-} {
-  if (path === undefined || path.length === 0) {
-    return { position: Position.create(0, 0), rest: [] };
-  }
-
-  let position = Position.create(0, 0);
-  try {
-    const split = path[0].split(':');
-    const line = parseInt(split[0]);
-    const column = parseInt(split[1]);
-
-    position = Position.create(line - 1, column - 1);
-  } catch (e: unknown) {
-    // pass
-  }
-
-  return {
-    position,
-    rest: path.slice(1),
-  };
 }
 
 function diagnosticFromValidationIssue(
   issue: ValidationIssue,
   severity?: DiagnosticSeverity
 ): Diagnostic {
-  const { position } = parseLinterPath(issue.context.path);
+  const { location } = issue.context.path;
+  const range = location
+    ? Range.create(
+        location.start.line - 1,
+        location.start.column - 1,
+        location.end.line - 1,
+        location.end.column - 1
+      )
+    : Range.create(Position.create(0, 0), Position.create(0, 0));
 
   const diag = Diagnostic.create(
-    Range.create(position, position),
+    range,
     formatIssueContext(issue),
     severity,
     issue.kind
@@ -134,7 +125,7 @@ export function lintMap(
   const profileOutput = getProfileOutput(profileAst);
   const validationResult = validateMap(profileOutput, mapAst);
 
-  context?.log?.('Validation result:', validationResult);
+  context?.log?.('Validation result:', inspect(validationResult, true, 5));
 
   // result formatting
   const result: Diagnostic[] = (

@@ -28,7 +28,10 @@ export function listProfileSymbols(
   const namespaceSymbols = [];
   for (const definition of profile.definitions) {
     // TODO: improve (selection) ranges
-    const definitionRange = document.rangeFromSpan(definition.location.start.charIndex, definition.location.end.charIndex);
+    const definitionRange = document.rangeFromSpan(
+      definition.location.start.charIndex,
+      definition.location.end.charIndex
+    );
 
     switch (definition.kind) {
       case 'UseCaseDefinition':
@@ -77,7 +80,7 @@ export function listProfileSymbols(
 
   const fileSpan = {
     start: profile.location.start.charIndex,
-    end: profile.location.end.charIndex
+    end: profile.location.end.charIndex,
   };
 
   const namespaceSymbol = DocumentSymbol.create(
@@ -88,8 +91,14 @@ export function listProfileSymbols(
     ),
     undefined,
     SymbolKind.Namespace,
-    document.rangeFromSpan(profile.header.location.start.charIndex, fileSpan.end),
-    document.rangeFromSpan(profile.header.location.start.charIndex, fileSpan.end),
+    document.rangeFromSpan(
+      profile.header.location.start.charIndex,
+      fileSpan.end
+    ),
+    document.rangeFromSpan(
+      profile.header.location.start.charIndex,
+      fileSpan.end
+    ),
     namespaceSymbols
   );
 
@@ -116,7 +125,10 @@ export function listMapSymbols(
 
   const namespaceSymbols = [];
   for (const definition of map.definitions) {
-    const definitionRange = document.rangeFromSpan(definition.location.start.charIndex, definition.location.end.charIndex);
+    const definitionRange = document.rangeFromSpan(
+      definition.location.start.charIndex,
+      definition.location.end.charIndex
+    );
 
     switch (definition.kind) {
       case 'MapDefinition':
@@ -151,7 +163,7 @@ export function listMapSymbols(
 
   const fileSpan = {
     start: map.location.start.charIndex,
-    end: map.location.end.charIndex
+    end: map.location.end.charIndex,
   };
 
   const namespaceSymbol = DocumentSymbol.create(
