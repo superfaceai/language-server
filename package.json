@@ -23,7 +23,7 @@
     "typescript": "^4.3"
   },
   "dependencies": {
-    "@superfaceai/parser": "^1.1.0-rc.0",
+    "@superfaceai/parser": "^1.1.0-rc.1",
     "vscode-languageserver": "^7",
     "vscode-languageserver-textdocument": "^1.0.1"
   },

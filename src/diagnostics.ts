@@ -27,23 +27,30 @@ export function diagnosticsFromSyntaxError(
 ): Diagnostic[] {
   const result: Diagnostic[] = [];
 
-  let message = error.detail;
-  if (error.hint !== undefined) {
-    message += `\n\n${error.hint}`;
-  }
+  const range = Range.create(
+    error.location.start.line - 1,
+    error.location.start.column - 1,
+    error.location.end.line - 1,
+    error.location.end.column - 1
+  );
 
   const diag: Diagnostic = {
-    range: Range.create(
-      error.location.start.line - 1,
-      error.location.start.column - 1,
-      error.location.end.line - 1,
-      error.location.end.column - 1
-    ),
-    message,
+    range,
+    message: error.detail,
     severity: DiagnosticSeverity.Error,
     source: error.category,
   };
   result.push(diag);
+
+  for (const hint of error.hints) {
+    const hintDiag: Diagnostic = {
+      range,
+      message: hint,
+      severity: DiagnosticSeverity.Information,
+      source: 'Error hint'
+    };
+    result.push(hintDiag);
+  }
 
   return result;
 }
