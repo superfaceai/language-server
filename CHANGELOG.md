@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2022-02-11
 ### Changed
 - Updated parser to 1.1.0
 
@@ -88,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Language server implementation that uses superface parser to naively diagnose map files
 
-[Unreleased]: https://github.com/superfaceai/language-server/compare/v1.0.1-beta.0...HEAD
+[Unreleased]: https://github.com/superfaceai/language-server/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/superfaceai/language-server/compare/v1.0.1-beta.0...v1.1.0
 [1.0.1-beta.0]: https://github.com/superfaceai/language-server/compare/v1.0.0...v1.0.1-beta.0
 [1.0.0]: https://github.com/superfaceai/language-server/compare/v0.0.17...v1.0.0
 [0.0.17]: https://github.com/superfaceai/language-server/compare/v0.0.16...v0.0.17
