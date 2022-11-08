@@ -47,7 +47,7 @@ export function diagnosticsFromSyntaxError(
       range,
       message: hint,
       severity: DiagnosticSeverity.Information,
-      source: 'Error hint'
+      source: 'Error hint',
     };
     result.push(hintDiag);
   }

@@ -225,7 +225,7 @@ class ServerContext {
       log: this.conLog.bind(this),
     });
     this.conLog('Sending diagnostics:', diagnostics);
-    this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
+    void this.connection.sendDiagnostics({ uri: document.uri, diagnostics });
   }
 
   // UTILITY //
