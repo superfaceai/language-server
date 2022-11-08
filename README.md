@@ -28,4 +28,4 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 ## License
 
 The Superface Parser is licensed under the [MIT](LICENSE).
-© 2021 Superface
+© 2022 Superface
