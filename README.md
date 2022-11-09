@@ -24,8 +24,9 @@ Licenses of `node_modules` are checked during push CI/CD for every commit. Only 
 - CC-BY-3.0;BSD
 - CC0-1.0
 - Unlicense
+- Python 2.0
 
 ## License
 
 The Superface Parser is licensed under the [MIT](LICENSE).
-© 2021 Superface
+© 2022 Superface
