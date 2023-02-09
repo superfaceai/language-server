@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2023-02-09
+
 ## [1.1.2-beta.0] - 2023-02-09
 ### Changed
 - Updated Parser to 2.1.0 to support `None` in examples
@@ -99,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Language server implementation that uses superface parser to naively diagnose map files
 
-[Unreleased]: https://github.com/superfaceai/language-server/compare/v1.1.2-beta.0...HEAD
+[Unreleased]: https://github.com/superfaceai/language-server/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/superfaceai/language-server/compare/v1.1.2-beta.0...v1.1.2
 [1.1.2-beta.0]: https://github.com/superfaceai/language-server/compare/v1.1.1...v1.1.2-beta.0
 [1.1.1]: https://github.com/superfaceai/language-server/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/superfaceai/language-server/compare/v1.0.1-beta.0...v1.1.0
